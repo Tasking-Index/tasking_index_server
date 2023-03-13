@@ -1,12 +1,14 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
 )
 
-type user struct {
-	Id       string
-	Password string
+type User struct {
+	Id       string `json:"user"`
+	Password string `json:"pass"`
 }
 
 type project struct {
@@ -36,12 +38,19 @@ func check(e error) {
 	}
 }
 
-func test(c *gin.Context) {
-	print("Hola")
+func login(w http.ResponseWriter, req *http.Request) {
+	var user User
+	body, err := ioutil.ReadAll(req.Body)
+	check(err)
+	json.Unmarshal([]byte(body), &user)
+	data, err := ioutil.ReadFile("../data/users.json")
+	print(string(data))
+	//w.Header().Set("Content-Type", "text/plain")
+	//w.Write([]byte(usuario))
 }
 
 func main() {
-	router := gin.Default()
-	router.GET("/", test)
-	router.Run("localhost:8080")
+	http.HandleFunc("/login", login)
+	err := http.ListenAndServe("localhost:443", nil)
+	check(err)
 }
