@@ -2,8 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 )
 
 type User struct {
@@ -38,19 +39,44 @@ func check(e error) {
 	}
 }
 
-func login(w http.ResponseWriter, req *http.Request) {
+func register(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	var user User
-	body, err := ioutil.ReadAll(req.Body)
-	check(err)
+	//Read body and save in User Struct
+	body, reqErr := io.ReadAll(req.Body)
+	check(reqErr)
 	json.Unmarshal([]byte(body), &user)
-	data, err := ioutil.ReadFile("../data/users.json")
-	print(string(data))
-	//w.Header().Set("Content-Type", "text/plain")
-	//w.Write([]byte(usuario))
+
+	// Read users.json and map
+	data, fileErr := os.ReadFile("../data/users.json")
+	check(fileErr)
+	users := make(map[string]string)
+	json.Unmarshal([]byte(data), &users)
+
+	if _, ok := users[user.Id]; ok {
+		resp := make(map[string]string)
+		resp["msg"] = "User already exists"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	} else {
+		users[user.Id] = user.Password
+		usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+		check(JsonErr)
+		erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+		check(erro)
+		resp := make(map[string]string)
+		resp["msg"] = "User correctly registered"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	}
 }
 
 func main() {
-	http.HandleFunc("/login", login)
+	http.HandleFunc("/register", register)
 	err := http.ListenAndServe("localhost:443", nil)
 	check(err)
 }
