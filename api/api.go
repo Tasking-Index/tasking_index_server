@@ -4,8 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"os"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -48,7 +51,8 @@ func check(e error) {
 func mailExists(users map[string]string, user User, needPassword bool) bool {
 	pswd, ok := users[user.Id]
 	if needPassword {
-		ok := user.Password == pswd
+		//ok := user.Password == pswd
+		ok := comparePasswords(user.Password, []byte(pswd))
 		return ok
 	}
 	return ok
@@ -58,6 +62,26 @@ func hash(s string) []byte {
 	hasher := sha256.New()
 	hasher.Write([]byte(s))
 	return hasher.Sum(nil)
+}
+
+func hashAndSalt(pwd []byte) string {
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return string(hash)
+}
+
+func comparePasswords(hashedPwd string, plainPwd []byte) bool {
+	byteHash := []byte(hashedPwd)
+	err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+
+	return true
 }
 
 // Maps users.json
@@ -183,7 +207,7 @@ func register(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(409)
 		w.Write(jsonResp)
 	} else {
-		users[user.Id] = user.Password
+		users[user.Id] = hashAndSalt([]byte(user.Password))
 		usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
 		check(JsonErr)
 		erro := os.WriteFile("../data/users.json", usersJSON, 0666)
