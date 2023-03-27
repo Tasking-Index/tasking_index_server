@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -48,7 +49,7 @@ func check(e error) {
 	}
 }
 
-func mailExists(users map[string]string, user User, needPassword bool) bool {
+func userExists(users map[string]string, user User, needPassword bool) bool {
 	pswd, ok := users[user.Id]
 	if needPassword {
 		//ok := user.Password == pswd
@@ -70,17 +71,20 @@ func hashAndSalt(pwd []byte) string {
 		log.Println(err)
 	}
 
+	print(hash)
+	print("\n")
+	print(string(hash))
+
 	return string(hash)
 }
 
-func comparePasswords(hashedPwd string, plainPwd []byte) bool {
+func comparePasswords(hashedPwd string, bytePwd []byte) bool {
 	byteHash := []byte(hashedPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, plainPwd)
+	err := bcrypt.CompareHashAndPassword(bytePwd, byteHash)
 	if err != nil {
 		log.Println(err)
 		return false
 	}
-
 	return true
 }
 
@@ -92,6 +96,15 @@ func mapUserJson() map[string]string {
 	error := json.Unmarshal(data, &users)
 	check(error)
 	return users
+}
+
+func getProjectsJson() UsersProjects {
+	data, fileErr := os.ReadFile("../data/projects.json")
+	check(fileErr)
+	var projects UsersProjects
+	error := json.Unmarshal(data, &projects)
+	check(error)
+	return projects
 }
 
 // Assigns body parameters to a user
@@ -113,30 +126,6 @@ func projectsMatched(userId string) {
 	json.Unmarshal(data, &usersProjects)
 }
 
-// Request {"id": 1, "user":"paco", "pass": "paco1"}
-/*
-func getProject(w http.ResponseWriter, req *http.Request) {
-	body, reqErr := io.ReadAll(req.Body)
-	check(reqErr)
-	users := mapUserJson()
-	var user User
-	json.Unmarshal(body, &user)
-	if mailExists(users, user, true) {
-		//DAR INFORMACIÓN DEL PROYECTO
-		print("EXISTE")
-		//var projects []Project
-
-	} else {
-		resp := make(map[string]string)
-		resp["msg"] = "Login needed to get projects"
-		jsonResp, respErr := json.Marshal(resp)
-		check(respErr)
-		w.WriteHeader(400)
-		w.Write(jsonResp)
-	}
-}
-*/
-
 // Request: {"user":"user1", "pass":"pass1", "title": "Title Project"}
 // TODO
 func createProject(w http.ResponseWriter, req *http.Request) {
@@ -145,7 +134,7 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 	users := mapUserJson()
 	var user User
 	json.Unmarshal(body, &user)
-	if mailExists(users, user, true) {
+	if userExists(users, user, true) {
 		bodyInfo := make(map[string]string)
 		json.Unmarshal(body, &bodyInfo)
 		data, fileErr := os.ReadFile("../data/projects.json")
@@ -184,7 +173,30 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// TODO Hash passwords
+// Request {"id": 1, "user":"paco", "pass": "paco1"}
+func getProject(w http.ResponseWriter, req *http.Request) {
+	print("HOLA")
+	body, reqErr := io.ReadAll(req.Body)
+	check(reqErr)
+	users := mapUserJson()
+	var user User
+	json.Unmarshal(body, &user)
+	if userExists(users, user, true) {
+		//DAR INFORMACIÓN DEL PROYECTO
+		print("EXISTE")
+		projects := getProjectsJson()
+		fmt.Println(projects)
+	} else {
+		resp := make(map[string]string)
+		resp["msg"] = "Login needed to get projects"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(400)
+		w.Write(jsonResp)
+	}
+}
+
+// TODO añadir usuario a UsersProjects
 func register(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var user User
@@ -199,7 +211,7 @@ func register(w http.ResponseWriter, req *http.Request) {
 	users := make(map[string]string)
 	json.Unmarshal(data, &users)
 
-	if mailExists(users, user, false) {
+	if userExists(users, user, false) {
 		resp := make(map[string]string)
 		resp["msg"] = "User already exists"
 		jsonResp, respErr := json.Marshal(resp)
@@ -221,13 +233,13 @@ func register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// TODO Change map[string]string to map[string][]byte (hash) and send projects
+// TODO Send projects
 func login(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var user User
 	user = getBodyUser(req)
 	users := mapUserJson()
-	if mailExists(users, user, true) {
+	if userExists(users, user, true) {
 		resp := make(map[string]string)
 		resp["msg"] = "User correctly logged"
 		jsonResp, respErr := json.Marshal(resp)
@@ -248,7 +260,7 @@ func main() {
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/createProject", createProject)
-	//http.HandleFunc("/getProject", getProject)
+	http.HandleFunc("/getProject", getProject)
 	err := http.ListenAndServe("localhost:443", nil)
 	check(err)
 }
