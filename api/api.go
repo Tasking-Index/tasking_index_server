@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -233,7 +234,53 @@ func login(w http.ResponseWriter, req *http.Request) {
 }
 
 func updateProject(w http.ResponseWriter, req *http.Request) {
+	// Read users.json and map
+	data, fileErr := os.ReadFile("../data/users.json")
+	check(fileErr)
+	var users Users
+	json.Unmarshal(data, &users)
 
+	//Read files from multipart request
+	//Se puede aumentar 10(KB)-->20(MB)-->30(GB)
+	err := req.ParseMultipartForm(32 << 20) // maxMemory 32MB
+	check(err)
+	body := req.FormValue("bodyJson")
+	var bodyJson BodyUserProject
+	json.Unmarshal([]byte(body), &bodyJson)
+	body = req.FormValue("files")
+	fileKeysJson := make(map[string][]string)
+	json.Unmarshal([]byte(body), &fileKeysJson)
+	fileKeys := fileKeysJson["filekeys"]
+
+	fmt.Println(bodyJson)
+	fmt.Println(bodyJson.User)
+
+	if userExists(users, bodyJson.User, true) {
+		for _, fileKey := range fileKeys {
+			print(fileKey)
+			file, handler, err := req.FormFile(fileKey)
+			check(err)
+			filename := handler.Filename
+			tmpfile, err := os.Create("../projects/" + strconv.Itoa(bodyJson.Project.Id) + "/" + filename)
+			defer tmpfile.Close()
+			check(err)
+			_, err = io.Copy(tmpfile, file)
+			check(err)
+		}
+		resp := make(map[string]string)
+		resp["msg"] = "Project correctly updated"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	} else {
+		resp := make(map[string]string)
+		resp["msg"] = "Incorrect user or password"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
 }
 
 func createProject(w http.ResponseWriter, req *http.Request) {
