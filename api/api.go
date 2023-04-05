@@ -3,19 +3,33 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	Id       string `json:"user"`
-	Password string `json:"pass"`
+type Users struct {
+	Users []User `json:"users"`
 }
 
-type UsersProjects struct {
-	Users    map[string][]int `json:"users"`
-	Projects []Project        `json:"projects"`
+type BodyUserProject struct {
+	User    User    `json:"bodyUser"`
+	Project Project `json:"bodyProject"`
+}
+
+type User struct {
+	Id                  string `json:"user"`
+	Password            string `json:"pass"`
+	Kpriv               string `json:"kPriv"`
+	Kpub                string `json:"kPub"`
+	DoubleAuthKey       string `json:"doubleAuthKey"`
+	DoubleAuthActivated bool   `json:"doubleAuthActivated"`
+	Projects            []int  `json:"projects"`
 }
 
 type Project struct {
@@ -45,13 +59,29 @@ func check(e error) {
 	}
 }
 
-func mailExists(users map[string]string, user User, needPassword bool) bool {
-	pswd, ok := users[user.Id]
-	if needPassword {
-		ok := user.Password == pswd
-		return ok
+func userExists(users Users, user User, needPassword bool) bool {
+	for _, userSaved := range users.Users {
+		if userSaved.Id == user.Id {
+			if needPassword {
+				pswd := user.Password
+				ok := comparePasswords(userSaved.Password, []byte(pswd))
+				return ok
+			}
+			return true
+		}
 	}
-	return ok
+	return false
+}
+
+func findUser(users Users, user User) int {
+	var index int
+	for i, userSaved := range users.Users {
+		if userSaved.Id == user.Id {
+			index = i
+			break
+		}
+	}
+	return index
 }
 
 func hash(s string) []byte {
@@ -60,11 +90,29 @@ func hash(s string) []byte {
 	return hasher.Sum(nil)
 }
 
-// Maps users.json
-func mapUserJson() map[string]string {
+func hashAndSalt(pwd []byte) string {
+	hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+	if err != nil {
+		log.Println(err)
+	}
+	return string(hash)
+}
+
+func comparePasswords(hashedPwd string, bytePwd []byte) bool {
+	byteHash := []byte(hashedPwd)
+	err := bcrypt.CompareHashAndPassword(byteHash, bytePwd)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	return true
+}
+
+// Structs users.json
+func StructUsersJson() Users {
 	data, fileErr := os.ReadFile("../data/users.json")
 	check(fileErr)
-	users := make(map[string]string)
+	var users Users
 	error := json.Unmarshal(data, &users)
 	check(error)
 	return users
@@ -80,28 +128,37 @@ func getBodyUser(req *http.Request) User {
 	return user
 }
 
-// TODO
-func projectsMatched(userId string) {
-	//Save json to struct
-	var usersProjects UsersProjects
-	data, fileErr := os.ReadFile("../data/projects.json")
-	check(fileErr)
-	json.Unmarshal(data, &usersProjects)
-}
-
-// Request {"id": 1, "user":"paco", "pass": "paco1"}
-/*
-func getProject(w http.ResponseWriter, req *http.Request) {
+func getBodyUserProject(req *http.Request) BodyUserProject {
+	var project BodyUserProject
 	body, reqErr := io.ReadAll(req.Body)
 	check(reqErr)
-	users := mapUserJson()
+	error := json.Unmarshal(body, &project)
+	check(error)
+	return project
+}
+
+func getProjectId() map[string]int {
+	data, fileErr := os.ReadFile("../data/projectId.json")
+	check(fileErr)
+	projectIdJson := make(map[string]int)
+	error := json.Unmarshal(data, &projectIdJson)
+	check(error)
+	return projectIdJson
+}
+
+/*
+func getProject(w http.ResponseWriter, req *http.Request) {
+	print("HOLA")
+	body, reqErr := io.ReadAll(req.Body)
+	check(reqErr)
+	users := StructUsersJson()
 	var user User
 	json.Unmarshal(body, &user)
-	if mailExists(users, user, true) {
+	if userExists(users, user, true) {
 		//DAR INFORMACIÓN DEL PROYECTO
 		print("EXISTE")
-		//var projects []Project
-
+		projects := getProjectsJson()
+		fmt.Println(projects)
 	} else {
 		resp := make(map[string]string)
 		resp["msg"] = "Login needed to get projects"
@@ -113,54 +170,8 @@ func getProject(w http.ResponseWriter, req *http.Request) {
 }
 */
 
-// Request: {"user":"user1", "pass":"pass1", "title": "Title Project"}
-// TODO
-func createProject(w http.ResponseWriter, req *http.Request) {
-	body, reqErr := io.ReadAll(req.Body)
-	check(reqErr)
-	users := mapUserJson()
-	var user User
-	json.Unmarshal(body, &user)
-	if mailExists(users, user, true) {
-		bodyInfo := make(map[string]string)
-		json.Unmarshal(body, &bodyInfo)
-		data, fileErr := os.ReadFile("../data/projects.json")
-		check(fileErr)
-		var usersProjects UsersProjects
-		var project Project
-		json.Unmarshal(data, &usersProjects)
-		lastItem := len(usersProjects.Projects)
-		if lastItem == 0 {
-			project.Id = 0
-		} else {
-			project.Id = usersProjects.Projects[lastItem-1].Id + 1
-		}
-		project.Title = bodyInfo["title"]
-		project.Description = ""
-		project.Files = nil
-		usersProjects.Projects = append(usersProjects.Projects, project)
-		usersProjectsJSON, JsonErr := json.MarshalIndent(usersProjects, "", "  ")
-		check(JsonErr)
-		erro := os.WriteFile("../data/projects.json", usersProjectsJSON, 0666)
-		check(erro)
-		resp := make(map[string]interface{})
-		resp["msg"] = "Project correctly created"
-		resp["id"] = project.Id
-		jsonResp, respErr := json.Marshal(resp)
-		check(respErr)
-		w.WriteHeader(200)
-		w.Write(jsonResp)
-	} else {
-		resp := make(map[string]string)
-		resp["msg"] = "Login needed to create a project"
-		jsonResp, respErr := json.Marshal(resp)
-		check(respErr)
-		w.WriteHeader(400)
-		w.Write(jsonResp)
-	}
-}
-
-// TODO Hash passwords
+// TODO añadir usuario a UsersProjects
+// Preguntar a Angel si key a nil
 func register(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var user User
@@ -172,10 +183,10 @@ func register(w http.ResponseWriter, req *http.Request) {
 	// Read users.json and map
 	data, fileErr := os.ReadFile("../data/users.json")
 	check(fileErr)
-	users := make(map[string]string)
+	var users Users
 	json.Unmarshal(data, &users)
 
-	if mailExists(users, user, false) {
+	if userExists(users, user, false) {
 		resp := make(map[string]string)
 		resp["msg"] = "User already exists"
 		jsonResp, respErr := json.Marshal(resp)
@@ -183,7 +194,8 @@ func register(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(409)
 		w.Write(jsonResp)
 	} else {
-		users[user.Id] = user.Password
+		user.Password = hashAndSalt([]byte(user.Password))
+		users.Users = append(users.Users, user)
 		usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
 		check(JsonErr)
 		erro := os.WriteFile("../data/users.json", usersJSON, 0666)
@@ -197,13 +209,14 @@ func register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// TODO Change map[string]string to map[string][]byte (hash) and send projects
+// TODO Send projects
 func login(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var user User
 	user = getBodyUser(req)
-	users := mapUserJson()
-	if mailExists(users, user, true) {
+	//user.Password = hashAndSalt([]byte(user.Password))
+	users := StructUsersJson()
+	if userExists(users, user, true) {
 		resp := make(map[string]string)
 		resp["msg"] = "User correctly logged"
 		jsonResp, respErr := json.Marshal(resp)
@@ -220,10 +233,100 @@ func login(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func updateProject(w http.ResponseWriter, req *http.Request) {
+	// Read users.json and map
+	data, fileErr := os.ReadFile("../data/users.json")
+	check(fileErr)
+	var users Users
+	json.Unmarshal(data, &users)
+
+	//Read files from multipart request
+	//Se puede aumentar 10(KB)-->20(MB)-->30(GB)
+	err := req.ParseMultipartForm(32 << 20) // maxMemory 32MB
+	check(err)
+	body := req.FormValue("bodyJson")
+	var bodyJson BodyUserProject
+	json.Unmarshal([]byte(body), &bodyJson)
+	body = req.FormValue("files")
+	fileKeysJson := make(map[string][]string)
+	json.Unmarshal([]byte(body), &fileKeysJson)
+	fileKeys := fileKeysJson["filekeys"]
+
+	fmt.Println(bodyJson)
+	fmt.Println(bodyJson.User)
+
+	if userExists(users, bodyJson.User, true) {
+		for _, fileKey := range fileKeys {
+			print(fileKey)
+			file, handler, err := req.FormFile(fileKey)
+			check(err)
+			filename := handler.Filename
+			tmpfile, err := os.Create("../projects/" + strconv.Itoa(bodyJson.Project.Id) + "/" + filename)
+			defer tmpfile.Close()
+			check(err)
+			_, err = io.Copy(tmpfile, file)
+			check(err)
+		}
+		resp := make(map[string]string)
+		resp["msg"] = "Project correctly updated"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	} else {
+		resp := make(map[string]string)
+		resp["msg"] = "Incorrect user or password"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
+}
+
+func createProject(w http.ResponseWriter, req *http.Request) {
+	var body BodyUserProject
+	body = getBodyUserProject(req)
+	var bodyUser User
+	bodyUser = body.User
+	users := StructUsersJson()
+	if userExists(users, bodyUser, true) {
+		projectId := getProjectId()
+		id := projectId["projectId"]
+		projectId["projectId"] = projectId["projectId"] + 1
+		projectIdJson, projectIdErr := json.MarshalIndent(projectId, "", "  ")
+		check(projectIdErr)
+		err := os.WriteFile("../data/projectId.json", projectIdJson, 0666)
+		check(err)
+		resp := make(map[string]int)
+		resp["id"] = id
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		stringId := strconv.Itoa(id)
+		mkdirErr := os.MkdirAll("../projects/"+stringId, 0755)
+		check(mkdirErr)
+		userIndex := findUser(users, bodyUser)
+		users.Users[userIndex].Projects = append(users.Users[userIndex].Projects, id)
+		usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+		check(JsonErr)
+		erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+		check(erro)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	} else {
+		resp := make(map[string]string)
+		resp["msg"] = "Incorrect user or password"
+		jsonResp, respErr := json.Marshal(resp)
+		check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
+}
+
 func main() {
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/createProject", createProject)
+	http.HandleFunc("/updateProject", updateProject)
 	//http.HandleFunc("/getProject", getProject)
 	err := http.ListenAndServe("localhost:443", nil)
 	check(err)

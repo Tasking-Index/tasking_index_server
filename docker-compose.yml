@@ -1,0 +1,20 @@
+version: '3.5'
+
+
+networks:
+  home_server:
+    name: home_server
+    external: true
+
+services:
+  tasking_index:
+    image: docker.io/alc111docker/tasking_index:1.0
+    container_name: tasking
+    restart: unless-stopped
+    ports:
+      - 3000:3000  
+    volumes:
+      - ./data:/usr/src/app/data
+    networks:
+      home_server:
+        ipv4_address: 172.0.1.7
