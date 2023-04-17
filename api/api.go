@@ -157,7 +157,7 @@ func register(w http.ResponseWriter, req *http.Request) {
 
 	if u.UserExists(users, user, false) {
 		resp := make(map[string]string)
-		resp["msg"] = "User already exists"
+		resp["msg"] = "El usuario ya existe en la BD"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(409)
@@ -170,7 +170,7 @@ func register(w http.ResponseWriter, req *http.Request) {
 		erro := os.WriteFile("../data/users.json", usersJSON, 0666)
 		u.Check(erro)
 		resp := make(map[string]string)
-		resp["msg"] = "User correctly registered"
+		resp["msg"] = "Registro completado con éxito"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(200)
@@ -196,7 +196,7 @@ func login(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(200)
 	} else {
 		resp := make(map[string]string)
-		resp["msg"] = "Incorrect user or password"
+		resp["msg"] = "El usuario o contraseña son incorrectos"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(409)
@@ -214,7 +214,7 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 		//Encontrar Id en users
 		userIndex := u.FindUser(users, bodyUserProject.User)
 		user := users.Users[userIndex]
-		//Encontrar posicion del proyecto en users
+		//Encontrar posicion del proyecto en users y eliminar del array
 		projectIndex := u.FindProject(user, bodyUserProject.Project.Id)
 		user.Projects = u.DisAppend(user.Projects, projectIndex)
 		users.Users[userIndex] = user
@@ -226,14 +226,14 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 		filerr := os.RemoveAll("../projects/" + strconv.Itoa(bodyUserProject.Project.Id) + "/")
 		u.Check(filerr)
 		resp := make(map[string]string)
-		resp["msg"] = "Delete successfully done!"
+		resp["msg"] = "Proyecto borrado satisfactoriamente"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(200)
 		w.Write(jsonResp)
 	} else {
 		resp := make(map[string]string)
-		resp["msg"] = "Incorrect user or password"
+		resp["msg"] = "El usuario o contraseña son incorrectos"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(409)
@@ -272,14 +272,14 @@ func updateProject(w http.ResponseWriter, req *http.Request) {
 			u.Check(err)
 		}
 		resp := make(map[string]string)
-		resp["msg"] = "Project correctly updated"
+		resp["msg"] = "Proyecto modificado satisfactoriamente"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(200)
 		w.Write(jsonResp)
 	} else {
 		resp := make(map[string]string)
-		resp["msg"] = "Incorrect user or password"
+		resp["msg"] = "El usuario o contraseña son incorrectos"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(409)
@@ -318,7 +318,7 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 		w.Write(jsonResp)
 	} else {
 		resp := make(map[string]string)
-		resp["msg"] = "Incorrect user or password"
+		resp["msg"] = "El usuario o contraseña son incorrectos"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(409)
@@ -333,7 +333,7 @@ func main() {
 	http.HandleFunc("/updateProject", updateProject)
 	http.HandleFunc("/deleteProject", deleteProject)
 	//http.HandleFunc("/getProject", getProject)
-	err := http.ListenAndServe("localhost:443", nil)
+	err := http.ListenAndServe("192.168.1.103:443", nil)
 	u.Check(err)
 }
 

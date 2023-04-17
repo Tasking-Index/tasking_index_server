@@ -1,15 +1,31 @@
 {
   "users": [
     {
-      "user": "user1",
-      "pass": "$2a$04$sZ3cITCW9X91V8nIShJ23uA8g94dGz96Qk/k/maw8HI9oVIEDOZ/q",
+      "user": "user21",
+      "pass": "$2a$04$JaLl0dDVg3klCJc60oa49OuuSuvA1RcIBLfgQQ.NcHFRJ/UCsoIp2",
       "kPriv": "",
       "kPub": "",
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
-      "projects": [
-        0
-      ]
+      "projects": []
+    },
+    {
+      "user": "user12",
+      "pass": "$2a$04$4Wa4zER89Az08GFMmvlE8eQ0ZmI0YnP.k8F3njjVS69YqSIzVgpu.",
+      "kPriv": "",
+      "kPub": "",
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "projects": null
+    },
+    {
+      "user": "jfeiwoh",
+      "pass": "$2a$04$WN28aO7wNsZ7lOQUTe9.f.vrN4DOOyn4yeHQYiQh3QyqElyuRbMZS",
+      "kPriv": "",
+      "kPub": "",
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "projects": null
     }
   ]
 }
