@@ -46,7 +46,6 @@ func DisAppend(slice []int, index int) []int {
 }
 
 /*
-TODO: Puede que haya que cambiar la extensión del fichero
 Devuelve el nombre de los ficheros de proyectos
 */
 func GetFilenames(user User, users Users) []string {
@@ -54,7 +53,7 @@ func GetFilenames(user User, users Users) []string {
 	var filenames []string
 	for _, projectId := range projectIds {
 		//Puede que haya que cambiarlo
-		name := "../projects/" + strconv.Itoa(projectId) + "/" + user.Id + ".zip.enc"
+		name := "../projects/" + strconv.Itoa(projectId) + "/" + "project" + strconv.Itoa(projectId) + ".zip"
 		filenames = append(filenames, name)
 	}
 	return filenames
