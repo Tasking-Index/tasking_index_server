@@ -7,7 +7,9 @@
       "kPub": "",
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
-      "projects": []
+      "projects": [
+        0
+      ]
     },
     {
       "user": "user12",

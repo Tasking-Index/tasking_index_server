@@ -7,11 +7,14 @@ package main
 */
 
 import (
+	"archive/zip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	u "tasking_index_server/util"
 )
 
@@ -185,14 +188,24 @@ func login(w http.ResponseWriter, req *http.Request) {
 	json.Unmarshal([]byte(body), &bodyUser)
 	users := u.StructUsersJson()
 	if u.UserExists(users, bodyUser, true) {
-		//Obtenemos el nombre de los zips y lo enviamos en la respuesta
+		//Escribimos el zip sobre la respuesta
+		writer := zip.NewWriter(w)
+		defer writer.Close()
 		filenames := u.GetFilenames(bodyUser, users)
+		//Recorremos todos los proyectos guardados
 		for _, filename := range filenames {
+			//Hacemos una copia de los ficheros en el zip
 			file, err := os.Open(filename)
 			u.Check(err)
-			_, err = io.Copy(w, file)
+			defer file.Close()
+			newFilename := strings.Split(filename, "/")
+			fileToZip, err := writer.Create(newFilename[3])
+			u.Check(err)
+			_, err = io.Copy(fileToZip, file)
 			u.Check(err)
 		}
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", "data"))
 		w.WriteHeader(200)
 	} else {
 		resp := make(map[string]string)
@@ -256,21 +269,15 @@ func updateProject(w http.ResponseWriter, req *http.Request) {
 	body := req.FormValue("bodyJson")
 	var bodyJson u.BodyUserProject
 	json.Unmarshal([]byte(body), &bodyJson)
-	body = req.FormValue("files")
-	fileKeysJson := make(map[string][]string)
-	json.Unmarshal([]byte(body), &fileKeysJson)
-	fileKeys := fileKeysJson["filekeys"]
 	if u.UserExists(users, bodyJson.User, true) {
-		for _, fileKey := range fileKeys {
-			file, handler, err := req.FormFile(fileKey)
-			u.Check(err)
-			filename := handler.Filename
-			tmpfile, err := os.Create("../projects/" + strconv.Itoa(bodyJson.Project.Id) + "/" + filename)
-			defer tmpfile.Close()
-			u.Check(err)
-			_, err = io.Copy(tmpfile, file)
-			u.Check(err)
-		}
+		file, handler, err := req.FormFile("project")
+		u.Check(err)
+		filename := handler.Filename
+		tmpfile, err := os.Create("../projects/" + strconv.Itoa(bodyJson.Project.Id) + "/" + filename)
+		defer tmpfile.Close()
+		u.Check(err)
+		_, err = io.Copy(tmpfile, file)
+		u.Check(err)
 		resp := make(map[string]string)
 		resp["msg"] = "Proyecto modificado satisfactoriamente"
 		jsonResp, respErr := json.Marshal(resp)
@@ -327,13 +334,15 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	server := "localhost:443"
+	fmt.Println("Servidor a la espera de peticiones en " + server)
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/createProject", createProject)
 	http.HandleFunc("/updateProject", updateProject)
 	http.HandleFunc("/deleteProject", deleteProject)
 	//http.HandleFunc("/getProject", getProject)
-	err := http.ListenAndServe("192.168.1.103:443", nil)
+	err := http.ListenAndServe(server, nil)
 	u.Check(err)
 }
 
