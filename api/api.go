@@ -327,14 +327,16 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	server := "localhost:443"
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
 	http.HandleFunc("/createProject", createProject)
 	http.HandleFunc("/updateProject", updateProject)
 	http.HandleFunc("/deleteProject", deleteProject)
 	//http.HandleFunc("/getProject", getProject)
-	err := http.ListenAndServe("192.168.1.103:443", nil)
+	err := http.ListenAndServe(server, nil)
 	u.Check(err)
+	print("Servidor a la espera de peticiones en " + server)
 }
 
 // Código para enviar archivos
