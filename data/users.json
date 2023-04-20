@@ -7,6 +7,7 @@
       "kPub": "",
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
+      "totpCode": "",
       "projects": [
         0
       ]
@@ -18,6 +19,7 @@
       "kPub": "",
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
+      "totpCode": "",
       "projects": null
     },
     {
@@ -27,6 +29,17 @@
       "kPub": "",
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
+      "totpCode": "",
+      "projects": null
+    },
+    {
+      "user": "alc111",
+      "pass": "$2a$04$cZ/YnuJnnsYSDayqbhM22emg39QSKfwWBy3UwHIedDCF12EP2RNiW",
+      "kPriv": "",
+      "kPub": "",
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "totpCode": "",
       "projects": null
     }
   ]

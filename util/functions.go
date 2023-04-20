@@ -89,6 +89,18 @@ func GenerateKey(length int) string {
 	return secretKey
 }
 
+func CompareTOTPCode(secret string, totpCode string) bool {
+	same := false
+	totp := GenerateTOTP(secret)
+	totpServerCode := totp.Now()
+	if totpServerCode == totpCode {
+		same = true
+	}
+	return same
+}
+
+func TOTPactivated(user User) bool { return user.DoubleAuthActivated }
+
 /*
 Valida que un usuario existe junto con su password:
 

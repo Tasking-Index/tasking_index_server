@@ -40,13 +40,8 @@ type User struct {
 	Kpub                string `json:"kPub"`
 	DoubleAuthKey       string `json:"doubleAuthKey"`
 	DoubleAuthActivated bool   `json:"doubleAuthActivated"`
+	DoubleAuthCode 		string `json:"totpCode"`
 	Projects            []int  `json:"projects"`
-}
-
-type UserTOTP struct {
-	Id         string `json:"user"`
-	Password   string `json:"pass"`
-	ActualTOTP string `json:"totp"`
 }
 
 /*
