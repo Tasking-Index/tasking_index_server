@@ -181,6 +181,7 @@ func register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// TODO Hay que comprobar que el directorio no este vacio (PETA)
 func login(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -229,6 +230,15 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 		user := users.Users[userIndex]
 		//Encontrar posicion del proyecto en users y eliminar del array
 		projectIndex := u.FindProject(user, bodyUserProject.Project.Id)
+		if projectIndex == -1 {
+			resp := make(map[string]string)
+			resp["msg"] = "El proyecto no pertenece a este usuario"
+			jsonResp, respErr := json.Marshal(resp)
+			u.Check(respErr)
+			w.WriteHeader(409)
+			w.Write(jsonResp)
+			return
+		}
 		user.Projects = u.DisAppend(user.Projects, projectIndex)
 		users.Users[userIndex] = user
 		usersJson, usersErr := json.MarshalIndent(users, "", "  ")
@@ -254,7 +264,7 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// TODO --> Debe devolver los proyectos (como en login)
+// TODO --> Debe devolver los proyectos (como en login) y comprobar que el usuario tiene ese proyecto
 func updateProject(w http.ResponseWriter, req *http.Request) {
 	// Read users.json and map
 	data, fileErr := os.ReadFile("../data/users.json")
@@ -341,7 +351,7 @@ func main() {
 	http.HandleFunc("/createProject", createProject)
 	http.HandleFunc("/updateProject", updateProject)
 	http.HandleFunc("/deleteProject", deleteProject)
-	//http.HandleFunc("/getProject", getProject)
+	//http.HandleFunc("/Project", getProject)
 	err := http.ListenAndServe(server, nil)
 	u.Check(err)
 }
