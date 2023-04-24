@@ -34,14 +34,14 @@ type BodyUserProject struct {
 Usuario con sus datos
 */
 type User struct {
-	Id                  string `json:"user"`
-	Password            string `json:"pass"`
-	Kpriv               string `json:"kPriv"`
-	Kpub                string `json:"kPub"`
-	DoubleAuthKey       string `json:"doubleAuthKey"`
-	DoubleAuthActivated bool   `json:"doubleAuthActivated"`
-	DoubleAuthCode 		string `json:"totpCode"`
-	Projects            []int  `json:"projects"`
+	Id                  string  `json:"user"`
+	Password            string  `json:"pass"`
+	Keys                Keys    `json:"keys"`
+	DoubleAuthKey       string  `json:"doubleAuthKey"`
+	DoubleAuthActivated bool    `json:"doubleAuthActivated"`
+	DoubleAuthCode      string  `json:"totpCode"`
+	Projects            []int   `json:"projects"`
+	Friends             Friends `json:"friends"`
 }
 
 /*
@@ -72,4 +72,14 @@ Informacion de una tarea
 type Tarea struct {
 	nombre string
 	estado bool
+}
+
+type Keys struct {
+	Kpriv string `json:"kPriv"`
+	Kpub  string `json:"kPub"`
+}
+
+type Friends struct {
+	Available []string `json:"available"`
+	Pending   []string `json:"pending"`
 }
