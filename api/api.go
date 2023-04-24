@@ -46,28 +46,6 @@ func getProjectId() map[string]int {
 	return projectIdJson
 }
 
-/*
-func getProject(w http.ResponseWriter, req *http.Request) {
-		body, reqErr := io.ReadAll(req.Body)
-		u.Check(reqErr)
-		users := u.StructUsersJson()
-		var user User
-		json.Unmarshal(body, &user)
-		if u.UserExists(users, user, true) {
-			//DAR INFORMACIÓN DEL PROYECTO
-			projects := getProjectsJson()
-			fmt.Println(projects)
-		} else {
-			resp := make(map[string]string)
-			resp["msg"] = "Login needed to get projects"
-			jsonResp, respErr := json.Marshal(resp)
-			u.Check(respErr)
-			w.WriteHeader(400)
-			w.Write(jsonResp)
-		}
-}
-*/
-
 // Checks if user has TOTP correctly configured and enables 2FA
 func check2FA(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -211,53 +189,6 @@ func register(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// TODO Hay que comprobar que el directorio no este vacio (PETA)
-func login(w http.ResponseWriter, req *http.Request) {
-	var bodyUser u.User
-	body, reqErr := io.ReadAll(req.Body)
-	u.Check(reqErr)
-	json.Unmarshal([]byte(body), &bodyUser)
-	users := u.StructUsersJson()
-	if u.UserExists(users, bodyUser, true) {
-		savedUser := u.ObtainUser(bodyUser, users)
-		if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUser.DoubleAuthCode) {
-			//Escribimos el zip sobre la respuesta
-			writer := zip.NewWriter(w)
-			defer writer.Close()
-			filenames := u.GetFilenames(bodyUser, users)
-			//Recorremos todos los proyectos guardados
-			for _, filename := range filenames {
-				//Hacemos una copia de los ficheros en el zip
-				file, err := os.Open(filename)
-				u.Check(err)
-				defer file.Close()
-				newFilename := strings.Split(filename, "/")
-				fileToZip, err := writer.Create(newFilename[3])
-				u.Check(err)
-				_, err = io.Copy(fileToZip, file)
-				u.Check(err)
-			}
-			w.Header().Set("Content-Type", "application/zip")
-			w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", "data"))
-			w.WriteHeader(200)
-		} else {
-			resp := make(map[string]string)
-			resp["msg"] = "Código de 2FA incorrecto"
-			jsonResp, respErr := json.Marshal(resp)
-			u.Check(respErr)
-			w.WriteHeader(409)
-			w.Write(jsonResp)
-		}
-	} else {
-		resp := make(map[string]string)
-		resp["msg"] = "El usuario o contraseña son incorrectos"
-		jsonResp, respErr := json.Marshal(resp)
-		u.Check(respErr)
-		w.WriteHeader(409)
-		w.Write(jsonResp)
-	}
-}
-
 func deleteProject(w http.ResponseWriter, req *http.Request) {
 	users := u.StructUsersJson()
 	var bodyUserProject u.BodyUserProject
@@ -306,6 +237,7 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 
 // TODO --> Debe devolver los proyectos (como en login) y comprobar que el usuario tiene ese proyecto
 func updateProject(w http.ResponseWriter, req *http.Request) {
+
 	// Read users.json and map
 	data, fileErr := os.ReadFile("../data/users.json")
 	u.Check(fileErr)
@@ -383,36 +315,103 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func getKeys(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+	if u.UserExists(users, bodyUser, true) {
+		var keys u.Keys
+		keys.Kpriv = users.Users[u.FindUser(users, bodyUser)].Keys.Kpriv
+		keys.Kpub = users.Users[u.FindUser(users, bodyUser)].Keys.Kpub
+		jsonResp, jsonErr := json.Marshal(keys)
+		u.Check(jsonErr)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	} else {
+		resp := make(map[string]string)
+		resp["msg"] = "El usuario o contraseña son incorrectos"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
+}
+
+func getProjects(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+	savedUser := u.ObtainUser(bodyUser, users)
+	if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUser.DoubleAuthCode) {
+		//Escribimos el zip sobre la respuesta
+		writer := zip.NewWriter(w)
+		defer writer.Close()
+		filenames := u.GetFilenames(bodyUser, users)
+		//Recorremos todos los proyectos guardados
+		for _, filename := range filenames {
+			//Hacemos una copia de los ficheros en el zip
+			file, err := os.Open(filename)
+			u.Check(err)
+			defer file.Close()
+			newFilename := strings.Split(filename, "/")
+			fileToZip, err := writer.Create(newFilename[3])
+			u.Check(err)
+			_, err = io.Copy(fileToZip, file)
+			u.Check(err)
+		}
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", "data"))
+		w.WriteHeader(200)
+	} else {
+		resp := make(map[string]string)
+		resp["msg"] = "Código de 2FA incorrecto"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
+}
+
+func login(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var bodyUser u.User
+		body, reqErr := io.ReadAll(req.Body)
+		u.Check(reqErr)
+		json.Unmarshal([]byte(body), &bodyUser)
+		users := u.StructUsersJson()
+		if !u.UserExists(users, bodyUser, true) {
+			resp := make(map[string]string)
+			resp["msg"] = "El usuario o contraseña son incorrectos"
+			jsonResp, respErr := json.Marshal(resp)
+			u.Check(respErr)
+			w.WriteHeader(409)
+			w.Write(jsonResp)
+			return
+		}
+		next.ServeHTTP(w, req)
+	})
+}
+
 func main() {
 	server := "localhost:8080"
 	fmt.Println("Servidor a la espera de peticiones en " + server)
+	mux := http.NewServeMux()
+	loginHandler := http.HandlerFunc(getProjects)
 	http.HandleFunc("/register", register)
-	http.HandleFunc("/login", login)
+	mux.Handle("/login", login(loginHandler))
 	http.HandleFunc("/createProject", createProject)
 	http.HandleFunc("/updateProject", updateProject)
 	http.HandleFunc("/deleteProject", deleteProject)
 	http.HandleFunc("/enable2FA", enable2FA)
 	http.HandleFunc("/check2FA", check2FA)
 	http.HandleFunc("/disable2FA", disable2FA)
+	http.HandleFunc("/getKeys", getKeys)
 	//http.HandleFunc("/getProject", getProject)
-	err := http.ListenAndServe(server, nil)
+
+	err := http.ListenAndServe(server, mux)
 	u.Check(err)
-}
-
-// Código para enviar archivos
-func handleFile(w http.ResponseWriter, r *http.Request) {
-	file, err := os.Open("archivo.txt")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer file.Close()
-
-	w.Header().Set("Content-Type", "text/plain")
-
-	_, err = io.Copy(w, file)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 }
