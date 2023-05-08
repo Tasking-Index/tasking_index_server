@@ -3,44 +3,68 @@
     {
       "user": "user21",
       "pass": "$2a$04$JaLl0dDVg3klCJc60oa49OuuSuvA1RcIBLfgQQ.NcHFRJ/UCsoIp2",
-      "kPriv": "",
-      "kPub": "",
+      "keys": {
+        "kPriv": "",
+        "kPub": ""
+      },
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
       "projects": [
         0
-      ]
+      ],
+      "friends": {
+        "available": null,
+        "pending": null
+      }
     },
     {
       "user": "user12",
       "pass": "$2a$04$4Wa4zER89Az08GFMmvlE8eQ0ZmI0YnP.k8F3njjVS69YqSIzVgpu.",
-      "kPriv": "",
-      "kPub": "",
+      "keys": {
+        "kPriv": "",
+        "kPub": ""
+      },
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
-      "projects": null
+      "projects": null,
+      "friends": {
+        "available": null,
+        "pending": null
+      }
     },
     {
       "user": "jfeiwoh",
       "pass": "$2a$04$WN28aO7wNsZ7lOQUTe9.f.vrN4DOOyn4yeHQYiQh3QyqElyuRbMZS",
-      "kPriv": "",
-      "kPub": "",
+      "keys": {
+        "kPriv": "",
+        "kPub": ""
+      },
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
-      "projects": null
+      "projects": null,
+      "friends": {
+        "available": null,
+        "pending": null
+      }
     },
     {
       "user": "alc111",
-      "pass": "$2a$04$cZ/YnuJnnsYSDayqbhM22emg39QSKfwWBy3UwHIedDCF12EP2RNiW",
-      "kPriv": "",
-      "kPub": "",
+      "pass": "$2a$04$vmzZZNOsNwr95gYgqH6Lxu2R67b.SpnMiHtu52xQv0DKYaJFGHQzi",
+      "keys": {
+        "kPriv": "",
+        "kPub": ""
+      },
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
-      "projects": null
+      "projects": null,
+      "friends": {
+        "available": null,
+        "pending": null
+      }
     }
   ]
 }
