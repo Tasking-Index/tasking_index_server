@@ -41,7 +41,11 @@ func FindProject(user User, id int) int {
 	return -1
 }
 
-func DisAppend(slice []int, index int) []int {
+func DisAppendInt(slice []int, index int) []int {
+	return append(slice[:index], slice[index+1:]...)
+}
+
+func DisAppendString(slice []string, index int) []string {
 	return append(slice[:index], slice[index+1:]...)
 }
 
@@ -149,6 +153,21 @@ func FindUser(users Users, user User) int {
 		}
 	}
 	return index
+}
+
+/*
+Comprueba si un slice contiene un determinado valor
+
+	Parametros	(slice, string)
+	Devuelve	Si el string existe o no en el slice y su posición
+*/
+func Contains(s []string, str string) (bool, int) {
+	for i, v := range s {
+		if v == str {
+			return true, i
+		}
+	}
+	return false, -1
 }
 
 /*
