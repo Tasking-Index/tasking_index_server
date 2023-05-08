@@ -1,3 +1,46 @@
 {
-  "user1": "pass1"
+  "users": [
+    {
+      "user": "user21",
+      "pass": "$2a$04$JaLl0dDVg3klCJc60oa49OuuSuvA1RcIBLfgQQ.NcHFRJ/UCsoIp2",
+      "kPriv": "",
+      "kPub": "",
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "totpCode": "",
+      "projects": [
+        0
+      ]
+    },
+    {
+      "user": "user12",
+      "pass": "$2a$04$4Wa4zER89Az08GFMmvlE8eQ0ZmI0YnP.k8F3njjVS69YqSIzVgpu.",
+      "kPriv": "",
+      "kPub": "",
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "totpCode": "",
+      "projects": null
+    },
+    {
+      "user": "jfeiwoh",
+      "pass": "$2a$04$WN28aO7wNsZ7lOQUTe9.f.vrN4DOOyn4yeHQYiQh3QyqElyuRbMZS",
+      "kPriv": "",
+      "kPub": "",
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "totpCode": "",
+      "projects": null
+    },
+    {
+      "user": "alc111",
+      "pass": "$2a$04$cZ/YnuJnnsYSDayqbhM22emg39QSKfwWBy3UwHIedDCF12EP2RNiW",
+      "kPriv": "",
+      "kPub": "",
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "totpCode": "",
+      "projects": null
+    }
+  ]
 }
