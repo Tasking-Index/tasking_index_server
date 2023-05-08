@@ -239,6 +239,9 @@ func updateProject(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+/*
+Crea el directorio del proyecto, lo añade al usuario y aumenta el identificador de proyectos
+*/
 func createProject(w http.ResponseWriter, req *http.Request) {
 	var body u.BodyUserProject
 	body = getBodyUserProject(req)
@@ -269,6 +272,46 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+/*
+Elimina el colaborador de un proyecto
+*/
+func deleteColaborator(w http.ResponseWriter, req *http.Request) {
+	var body u.BodyUserProject
+	var user u.User
+	var project u.Project
+	var user2 u.User
+	body = getBodyUserProject(req)
+	user = body.User
+	project = body.Project
+	users := u.StructUsersJson()
+	user2.Id = user.Friends.Available[0]
+	existsFriend, _ := u.Contains(users.Users[u.FindUser(users, user)].Friends.Available, user2.Id)
+	existsProject, pos := u.HasProject(users.Users[u.FindUser(users, user2)], project.Id)
+
+	resp := make(map[string]string)
+	if existsFriend && existsProject {
+		users.Users[u.FindUser(users, user2)].Projects = u.DisAppendInt(users.Users[u.FindUser(users, user2)].Projects, pos)
+		usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+		u.Check(JsonErr)
+		erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+		u.Check(erro)
+		resp["msg"] = "Colaborador eliminado correctamente"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	} else {
+		resp["msg"] = "ERROR: el colaborador no es amigo o no se encuentra añadido"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
+}
+
+/*
+Añade a un colaborador a un proyecto
+*/
 func addColaborator(w http.ResponseWriter, req *http.Request) {
 	var body u.BodyUserProject
 	var user u.User
@@ -280,9 +323,7 @@ func addColaborator(w http.ResponseWriter, req *http.Request) {
 	users := u.StructUsersJson()
 	user2.Id = user.Friends.Available[0]
 	existsFriend, _ := u.Contains(users.Users[u.FindUser(users, user)].Friends.Available, user2.Id)
-	existsProject := u.HasProject(users.Users[u.FindUser(users, user2)], project.Id)
-
-	print("Hi")
+	existsProject, _ := u.HasProject(users.Users[u.FindUser(users, user2)], project.Id)
 
 	resp := make(map[string]string)
 	if existsFriend && !existsProject {
@@ -297,7 +338,7 @@ func addColaborator(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(200)
 		w.Write(jsonResp)
 	} else {
-		resp["msg"] = "ERROR: el colaborador no es amigo"
+		resp["msg"] = "ERROR: el colaborador no es amigo o ya se encuentra añadido"
 		jsonResp, respErr := json.Marshal(resp)
 		u.Check(respErr)
 		w.WriteHeader(409)
@@ -305,6 +346,9 @@ func addColaborator(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+/*
+Devuelve todos los usuarios existentes en la aplicación
+*/
 func getUsers(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -326,6 +370,9 @@ func getUsers(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+/*
+Devuelve el struct Friends asociado al usuario que realiza la llamada
+*/
 func getFriends(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -340,6 +387,9 @@ func getFriends(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+/*
+Elimina un array de amigos del available de ambos usuarios
+*/
 func deleteFriends(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -368,6 +418,9 @@ func deleteFriends(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+/*
+Añade a los usuarios a los respectivos available y los elimina de las colas pending y requested
+*/
 func acceptFriends(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -399,6 +452,9 @@ func acceptFriends(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+/*
+Elimina a los usuarios de las colas pending y requested
+*/
 func rejectFriends(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -596,7 +652,9 @@ func main() {
 	getUsersHandler := http.HandlerFunc(getUsers)
 	mux.Handle("/getUsers", login(getUsersHandler))
 	addColaboratorHandler := http.HandlerFunc(addColaborator)
-	mux.Handle("/addColaborator", login(addColaboratorHandler))
+	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
+	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
+	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
 	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
 	u.Check(err)
 }
