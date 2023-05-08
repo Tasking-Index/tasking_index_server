@@ -269,32 +269,41 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
-//ESTO NO ES
-//func addCollaborator(w http.ResponseWriter, req *http.Request) {
-//	var body u.BodyUserProject
-//	body = getBodyUserProject(req)
-//	var user u.User
-//	//var project u.Project
-//	user = body.User
-//	project = body.Project
-//	users := u.StructUsersJson()
-//
-//	exists, _ := u.Contains(users.Users[u.FindUser(users, user)].Friends.Available, user.Friends.Available[0])
-//	resp := make(map[string]string)
-//	if exists {
-//		resp["msg"] = "Colaborador añadido correctamente"
-//		jsonResp, respErr := json.Marshal(resp)
-//		u.Check(respErr)
-//		w.WriteHeader(200)
-//		w.Write(jsonResp)
-//	} else {
-//		resp["msg"] = "ERROR: el colaborador no es amigo"
-//		jsonResp, respErr := json.Marshal(resp)
-//		u.Check(respErr)
-//		w.WriteHeader(409)
-//		w.Write(jsonResp)
-//	}
-//}
+func addColaborator(w http.ResponseWriter, req *http.Request) {
+	var body u.BodyUserProject
+	var user u.User
+	var project u.Project
+	var user2 u.User
+	body = getBodyUserProject(req)
+	user = body.User
+	project = body.Project
+	users := u.StructUsersJson()
+	user2.Id = user.Friends.Available[0]
+	existsFriend, _ := u.Contains(users.Users[u.FindUser(users, user)].Friends.Available, user2.Id)
+	existsProject := u.HasProject(users.Users[u.FindUser(users, user2)], project.Id)
+
+	print("Hi")
+
+	resp := make(map[string]string)
+	if existsFriend && !existsProject {
+		users.Users[u.FindUser(users, user2)].Projects = append(users.Users[u.FindUser(users, user2)].Projects, project.Id)
+		usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+		u.Check(JsonErr)
+		erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+		u.Check(erro)
+		resp["msg"] = "Colaborador añadido correctamente"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	} else {
+		resp["msg"] = "ERROR: el colaborador no es amigo"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
+}
 
 func getUsers(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
@@ -306,7 +315,7 @@ func getUsers(w http.ResponseWriter, req *http.Request) {
 	resp := make(map[string][]string)
 	var ids []string
 	for id, user := range users.Users {
-		if bodyUser.Id == user.Id {
+		if bodyUser.Id != user.Id {
 			ids = append(ids, users.Users[id].Id)
 		}
 	}
@@ -323,10 +332,9 @@ func getFriends(w http.ResponseWriter, req *http.Request) {
 	u.Check(reqErr)
 	json.Unmarshal([]byte(body), &bodyUser)
 	users := u.StructUsersJson()
-
-	resp := make(map[string][]string)
-	resp["friends"] = users.Users[u.FindUser(users, bodyUser)].Friends.Available
-	jsonResp, respErr := json.Marshal(resp)
+	var friends u.Friends
+	friends = users.Users[u.FindUser(users, bodyUser)].Friends
+	jsonResp, respErr := json.Marshal(friends)
 	u.Check(respErr)
 	w.WriteHeader(200)
 	w.Write(jsonResp)
@@ -553,7 +561,7 @@ func loginProject(next http.Handler) http.Handler {
 }
 
 func main() {
-	server := "172.20.10.6:8080"
+	server := "192.168.68.101:8080"
 	fmt.Println("Servidor a la espera de peticiones en " + server)
 	mux := http.NewServeMux()
 	registerHandler := http.HandlerFunc(register)
@@ -587,6 +595,8 @@ func main() {
 	mux.Handle("/getFriends", login(getFriendsHandler))
 	getUsersHandler := http.HandlerFunc(getUsers)
 	mux.Handle("/getUsers", login(getUsersHandler))
+	addColaboratorHandler := http.HandlerFunc(addColaborator)
+	mux.Handle("/addColaborator", login(addColaboratorHandler))
 	err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }
