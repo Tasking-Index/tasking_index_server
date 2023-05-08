@@ -617,7 +617,7 @@ func loginProject(next http.Handler) http.Handler {
 }
 
 func main() {
-	server := "192.168.68.101:8080"
+	server := "127.0.0.1:8080"
 	fmt.Println("Servidor a la espera de peticiones en " + server)
 	mux := http.NewServeMux()
 	registerHandler := http.HandlerFunc(register)
@@ -655,6 +655,6 @@ func main() {
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	err := http.ListenAndServe(server, mux)
+	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
 	u.Check(err)
 }
