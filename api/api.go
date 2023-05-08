@@ -269,11 +269,53 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
-/*
-func addCollaborator(w http.ResponseWriter, req *http.Request) {
+//ESTO NO ES
+//func addCollaborator(w http.ResponseWriter, req *http.Request) {
+//	var body u.BodyUserProject
+//	body = getBodyUserProject(req)
+//	var user u.User
+//	//var project u.Project
+//	user = body.User
+//	project = body.Project
+//	users := u.StructUsersJson()
+//
+//	exists, _ := u.Contains(users.Users[u.FindUser(users, user)].Friends.Available, user.Friends.Available[0])
+//	resp := make(map[string]string)
+//	if exists {
+//		resp["msg"] = "Colaborador añadido correctamente"
+//		jsonResp, respErr := json.Marshal(resp)
+//		u.Check(respErr)
+//		w.WriteHeader(200)
+//		w.Write(jsonResp)
+//	} else {
+//		resp["msg"] = "ERROR: el colaborador no es amigo"
+//		jsonResp, respErr := json.Marshal(resp)
+//		u.Check(respErr)
+//		w.WriteHeader(409)
+//		w.Write(jsonResp)
+//	}
+//}
 
+func getUsers(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+
+	resp := make(map[string][]string)
+	var ids []string
+	for id, user := range users.Users {
+		if bodyUser.Id == user.Id {
+			ids = append(ids, users.Users[id].Id)
+		}
+	}
+	resp["users"] = ids
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
 }
-*/
 
 func getFriends(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
@@ -283,7 +325,7 @@ func getFriends(w http.ResponseWriter, req *http.Request) {
 	users := u.StructUsersJson()
 
 	resp := make(map[string][]string)
-	resp["msg"] = users.Users[u.FindUser(users, bodyUser)].Friends.Available
+	resp["friends"] = users.Users[u.FindUser(users, bodyUser)].Friends.Available
 	jsonResp, respErr := json.Marshal(resp)
 	u.Check(respErr)
 	w.WriteHeader(200)
@@ -543,6 +585,8 @@ func main() {
 	mux.Handle("/deleteFriends", login(deleteFriendsHandler))
 	getFriendsHandler := http.HandlerFunc(getFriends)
 	mux.Handle("/getFriends", login(getFriendsHandler))
+	getUsersHandler := http.HandlerFunc(getUsers)
+	mux.Handle("/getUsers", login(getUsersHandler))
 	err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }

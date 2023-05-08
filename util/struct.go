@@ -48,10 +48,11 @@ type User struct {
 Proyecto con sus datos
 */
 type Project struct {
-	Id          int      `json:"id"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Files       []string `json:"files"`
+	Id          int        `json:"id"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Files       []string   `json:"files"`
+	Additional  Additional `json:"additional"`
 }
 
 /*
@@ -75,11 +76,13 @@ type Tarea struct {
 }
 
 type Keys struct {
-	Kpriv string `json:"kPriv"`
-	Kpub  string `json:"kPub"`
+	Kpriv  string `json:"kPriv"`
+	Kpub   string `json:"kPub"`
+	IVpriv string `json:"ivPriv"`
 }
 
 type Friends struct {
 	Available []string `json:"available"`
+	Requested []string `json:"requested"`
 	Pending   []string `json:"pending"`
 }
