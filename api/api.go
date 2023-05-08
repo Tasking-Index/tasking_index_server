@@ -192,7 +192,7 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 		w.Write(jsonResp)
 		return
 	}
-	user.Projects = u.DisAppend(user.Projects, projectIndex)
+	user.Projects = u.DisAppendInt(user.Projects, projectIndex)
 	users.Users[userIndex] = user
 	usersJson, usersErr := json.MarshalIndent(users, "", "  ")
 	u.Check(usersErr)
@@ -209,7 +209,7 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
-// TODO --> Debe devolver los proyectos (como en login) y comprobar que el usuario tiene ese proyecto
+// TODO --> ¿Debe devolver los proyectos (como en login) [Lo puede actualizar Chinin en local]? y comprobar que el usuario tiene ese proyecto
 func updateProject(w http.ResponseWriter, req *http.Request) {
 	// Read users.json and map
 	data, fileErr := os.ReadFile("../data/users.json")
@@ -269,6 +269,144 @@ func createProject(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+/*
+func addCollaborator(w http.ResponseWriter, req *http.Request) {
+
+}
+*/
+
+func getFriends(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+
+	resp := make(map[string][]string)
+	resp["msg"] = users.Users[u.FindUser(users, bodyUser)].Friends.Available
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+}
+
+func deleteFriends(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+	var auxUser u.User
+	for _, id := range bodyUser.Friends.Available {
+		auxUser.Id = id
+		exists, sourcePos := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
+		_, targetPos := u.Contains(users.Users[u.FindUser(users, auxUser)].Friends.Available, bodyUser.Id)
+		if exists {
+			users.Users[u.FindUser(users, bodyUser)].Friends.Available = u.DisAppendString(users.Users[u.FindUser(users, bodyUser)].Friends.Available, sourcePos)
+			users.Users[u.FindUser(users, auxUser)].Friends.Available = u.DisAppendString(users.Users[u.FindUser(users, auxUser)].Friends.Available, targetPos)
+		}
+	}
+	usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+	u.Check(JsonErr)
+	erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+	u.Check(erro)
+	resp := make(map[string]string)
+	resp["msg"] = "Amigos eliminados satisfactoriamente"
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+}
+
+func acceptFriends(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+	var auxUser u.User
+	for _, id := range bodyUser.Friends.Available {
+		exists, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
+		if !exists {
+			auxUser.Id = id
+			_, pendingPos := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
+			_, requestedPos := u.Contains(users.Users[u.FindUser(users, auxUser)].Friends.Requested, bodyUser.Id)
+			users.Users[u.FindUser(users, bodyUser)].Friends.Available = append(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
+			users.Users[u.FindUser(users, auxUser)].Friends.Available = append(users.Users[u.FindUser(users, auxUser)].Friends.Available, bodyUser.Id)
+			users.Users[u.FindUser(users, bodyUser)].Friends.Pending = u.DisAppendString(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, pendingPos)
+			users.Users[u.FindUser(users, auxUser)].Friends.Requested = u.DisAppendString(users.Users[u.FindUser(users, auxUser)].Friends.Requested, requestedPos)
+		}
+	}
+	usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+	u.Check(JsonErr)
+	erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+	u.Check(erro)
+	resp := make(map[string]string)
+	resp["msg"] = "Solicitudes de amistad aceptadas"
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+}
+
+func rejectFriends(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+	var auxUser u.User
+	for _, id := range bodyUser.Friends.Pending {
+		exists, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
+		if exists {
+			auxUser.Id = id
+			_, pendingPos := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
+			_, requestedPos := u.Contains(users.Users[u.FindUser(users, auxUser)].Friends.Requested, bodyUser.Id)
+			users.Users[u.FindUser(users, bodyUser)].Friends.Pending = u.DisAppendString(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, pendingPos)
+			users.Users[u.FindUser(users, auxUser)].Friends.Requested = u.DisAppendString(users.Users[u.FindUser(users, auxUser)].Friends.Requested, requestedPos)
+		}
+	}
+	usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+	u.Check(JsonErr)
+	erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+	u.Check(erro)
+	resp := make(map[string]string)
+	resp["msg"] = "Solicitudes de amistad aceptadas"
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+}
+
+// Añade usuarios de un array al campo requested y añade a pending de dichos usuarios al usuario que realiza la petición
+func friendRequests(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+	var auxUser u.User
+	for _, id := range bodyUser.Friends.Requested {
+		existsRequested, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Requested, id)
+		existsAvailable, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
+		if !existsRequested && !existsAvailable {
+			auxUser.Id = id
+			users.Users[u.FindUser(users, bodyUser)].Friends.Requested = append(users.Users[u.FindUser(users, bodyUser)].Friends.Requested, id)
+			users.Users[u.FindUser(users, auxUser)].Friends.Pending = append(users.Users[u.FindUser(users, auxUser)].Friends.Pending, bodyUser.Id)
+		}
+	}
+	usersJSON, JsonErr := json.MarshalIndent(users, "", "  ")
+	u.Check(JsonErr)
+	erro := os.WriteFile("../data/users.json", usersJSON, 0666)
+	u.Check(erro)
+	resp := make(map[string]string)
+	resp["msg"] = "Solicitudes de amistad enviadas satisfactoriamente"
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+}
+
 func getKeys(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -278,6 +416,7 @@ func getKeys(w http.ResponseWriter, req *http.Request) {
 	var keys u.Keys
 	keys.Kpriv = users.Users[u.FindUser(users, bodyUser)].Keys.Kpriv
 	keys.Kpub = users.Users[u.FindUser(users, bodyUser)].Keys.Kpub
+	keys.IVpriv = users.Users[u.FindUser(users, bodyUser)].Keys.IVpriv
 	jsonResp, jsonErr := json.Marshal(keys)
 	u.Check(jsonErr)
 	w.WriteHeader(200)
@@ -372,7 +511,7 @@ func loginProject(next http.Handler) http.Handler {
 }
 
 func main() {
-	server := "localhost:8080"
+	server := "172.20.10.6:8080"
 	fmt.Println("Servidor a la espera de peticiones en " + server)
 	mux := http.NewServeMux()
 	registerHandler := http.HandlerFunc(register)
@@ -381,6 +520,7 @@ func main() {
 	mux.Handle("/login", login(getProjectsHandler))
 	createProjectHandler := http.HandlerFunc(createProject)
 	mux.Handle("/createProject", loginProject(createProjectHandler))
+	//Update va a petar (recibe multipart, no bodyuserproject en loginProject)
 	updateProjectHandler := http.HandlerFunc(updateProject)
 	mux.Handle("/updateProject", loginProject(updateProjectHandler))
 	deleteProjectHandler := http.HandlerFunc(deleteProject)
@@ -393,7 +533,16 @@ func main() {
 	mux.Handle("/disable2FA", login(disable2FAHandler))
 	getKeysHandler := http.HandlerFunc(getKeys)
 	mux.Handle("/getKeys", login(getKeysHandler))
-	//http.HandleFunc("/getProject", getProject)
+	friendRequestsHandler := http.HandlerFunc(friendRequests)
+	mux.Handle("/friendRequests", login(friendRequestsHandler))
+	acceptFriendsHandler := http.HandlerFunc(acceptFriends)
+	mux.Handle("/acceptFriends", login(acceptFriendsHandler))
+	rejectFriendsHandler := http.HandlerFunc(rejectFriends)
+	mux.Handle("/rejectFriends", login(rejectFriendsHandler))
+	deleteFriendsHandler := http.HandlerFunc(deleteFriends)
+	mux.Handle("/deleteFriends", login(deleteFriendsHandler))
+	getFriendsHandler := http.HandlerFunc(getFriends)
+	mux.Handle("/getFriends", login(getFriendsHandler))
 	err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }
