@@ -126,13 +126,13 @@ func UserExists(users Users, user User, needPassword bool) bool {
 	return false
 }
 
-func HasProject(user User, id int) bool {
-	for _, project := range user.Projects {
+func HasProject(user User, id int) (bool, int) {
+	for i, project := range user.Projects {
 		if id == project {
-			return true
+			return true, i
 		}
 	}
-	return false
+	return false, -1
 }
 
 func ObtainUser(user User, users Users) User {
