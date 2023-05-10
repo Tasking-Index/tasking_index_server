@@ -110,15 +110,9 @@ func CompareTOTPCode(secret string, totpCode string) bool {
 
 func TOTPactivated(user User) bool { return user.DoubleAuthActivated }
 
-/*
-Valida que un usuario existe junto con su password:
-
-	Parametros	(Lista Users, User, Es necesario el password?)
-	Devuelve	Verdadero	si existe o...
-				Falso 		en caso contrario
-*/
-func UserExists(users Users, user User, needPassword bool) bool {
-	token, err := jwt.Parse(user.Password, func(token *jwt.Token) (interface{}, error) {
+func GetUserByToken(tokenUser TokenUser) User {
+	var user User
+	token, err := jwt.Parse(tokenUser.Token, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
@@ -127,20 +121,31 @@ func UserExists(users Users, user User, needPassword bool) bool {
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return HMACSECRET, nil
 	})
-
+	Check(err)
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		for _, userSaved := range users.Users {
-			if userSaved.Id == user.Id {
-				if needPassword {
-					pswd := claims[user.Id].(string)
-					ok := ComparePasswords(userSaved.Password, []byte(pswd))
-					return ok
-				}
-				return true
+		user.Id = claims["user"].(string)
+		user.Password = claims["pass"].(string)
+		return user
+	}
+	return user
+}
+
+/*
+Valida que un usuario existe junto con su password:
+
+	Parametros	(Lista Users, User, Es necesario el password?)
+	Devuelve	Verdadero	si existe o...
+				Falso 		en caso contrario
+*/
+func UserExists(users Users, user User, needPassword bool) bool {
+	for _, userSaved := range users.Users {
+		if userSaved.Id == user.Id {
+			if needPassword {
+				ok := ComparePasswords(userSaved.Password, []byte(user.Password))
+				return ok
 			}
+			return true
 		}
-	} else {
-		fmt.Println(err)
 	}
 	return false
 }

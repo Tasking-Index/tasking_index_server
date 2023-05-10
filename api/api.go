@@ -497,6 +497,7 @@ func friendRequests(w http.ResponseWriter, req *http.Request) {
 	json.Unmarshal([]byte(body), &bodyUser)
 	users := u.StructUsersJson()
 	var auxUser u.User
+	fmt.Print(bodyUser)
 	for _, id := range bodyUser.Friends.Requested {
 		existsRequested, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Requested, id)
 		existsAvailable, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
@@ -547,7 +548,7 @@ func getToken(w http.ResponseWriter, req *http.Request) {
 
 	// Sign and get the complete encoded token as a string using the secret
 	tokenString, err := token.SignedString(u.HMACSECRET)
-	fmt.Println(tokenString, err)
+	u.Check(err)
 
 	resp := make(map[string]string)
 	resp["token"] = tokenString
@@ -583,6 +584,45 @@ func getProjects(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", "data"))
 
 	w.WriteHeader(200)
+}
+
+func loginJWT(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var bodyToken u.TokenUser
+		var bodyUser u.User
+		var message string
+		body, reqErr := io.ReadAll(req.Body)
+		u.Check(reqErr)
+		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
+		req.Body = reqCopy
+		json.Unmarshal([]byte(body), &bodyToken)
+		json.Unmarshal([]byte(body), &bodyUser)
+		auxUser := u.GetUserByToken(bodyToken)
+		bodyUser.Id = auxUser.Id
+		bodyUser.Password = auxUser.Password
+		jsonResp, jsonErr := json.Marshal(bodyUser)
+		u.Check(jsonErr)
+		w.Write(jsonResp)
+
+		users := u.StructUsersJson()
+		savedUser := u.ObtainUser(bodyUser, users)
+		if u.UserExists(users, bodyUser, true) {
+			if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUser.DoubleAuthCode) {
+				next.ServeHTTP(w, req)
+				return
+			} else {
+				message = "2FA code does not match the server one"
+			}
+		} else {
+			message = "User not found or incorrect password"
+		}
+		resp := make(map[string]string)
+		resp["msg"] = message
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	})
 }
 
 func login(next http.Handler) http.Handler {
@@ -649,12 +689,14 @@ func main() {
 	server := "127.0.0.1:8080"
 	fmt.Println("Servidor a la espera de peticiones en " + server)
 	mux := http.NewServeMux()
+	//Unica que usa login
+	getTokenHandler := http.HandlerFunc(getToken)
+	mux.Handle("/getToken", login(getTokenHandler))
 	registerHandler := http.HandlerFunc(register)
 	mux.Handle("/register", registerHandler)
 	getProjectsHandler := http.HandlerFunc(getProjects)
-	mux.Handle("/login", login(getProjectsHandler))
-	getTokenHandler := http.HandlerFunc(getToken)
-	mux.Handle("/getToken", login(getTokenHandler))
+	mux.Handle("/login", loginJWT(getProjectsHandler))
+
 	createProjectHandler := http.HandlerFunc(createProject)
 	mux.Handle("/createProject", loginProject(createProjectHandler))
 	//Update va a petar (recibe multipart, no bodyuserproject en loginProject)
@@ -663,29 +705,30 @@ func main() {
 	deleteProjectHandler := http.HandlerFunc(deleteProject)
 	mux.Handle("/deleteProject", loginProject(deleteProjectHandler))
 	enable2FAHandler := http.HandlerFunc(enable2FA)
-	mux.Handle("/enable2FA", login(enable2FAHandler))
+	mux.Handle("/enable2FA", loginJWT(enable2FAHandler))
 	check2FAHandler := http.HandlerFunc(check2FA)
-	mux.Handle("/check2FA", login(check2FAHandler))
+	mux.Handle("/check2FA", loginJWT(check2FAHandler))
 	disable2FAHandler := http.HandlerFunc(disable2FA)
-	mux.Handle("/disable2FA", login(disable2FAHandler))
+	mux.Handle("/disable2FA", loginJWT(disable2FAHandler))
 	getKeysHandler := http.HandlerFunc(getKeys)
-	mux.Handle("/getKeys", login(getKeysHandler))
+	mux.Handle("/getKeys", loginJWT(getKeysHandler))
 	friendRequestsHandler := http.HandlerFunc(friendRequests)
-	mux.Handle("/friendRequests", login(friendRequestsHandler))
+	mux.Handle("/friendRequests", loginJWT(friendRequestsHandler))
 	acceptFriendsHandler := http.HandlerFunc(acceptFriends)
-	mux.Handle("/acceptFriends", login(acceptFriendsHandler))
+	mux.Handle("/acceptFriends", loginJWT(acceptFriendsHandler))
 	rejectFriendsHandler := http.HandlerFunc(rejectFriends)
-	mux.Handle("/rejectFriends", login(rejectFriendsHandler))
+	mux.Handle("/rejectFriends", loginJWT(rejectFriendsHandler))
 	deleteFriendsHandler := http.HandlerFunc(deleteFriends)
-	mux.Handle("/deleteFriends", login(deleteFriendsHandler))
+	mux.Handle("/deleteFriends", loginJWT(deleteFriendsHandler))
 	getFriendsHandler := http.HandlerFunc(getFriends)
-	mux.Handle("/getFriends", login(getFriendsHandler))
+	mux.Handle("/getFriends", loginJWT(getFriendsHandler))
 	getUsersHandler := http.HandlerFunc(getUsers)
-	mux.Handle("/getUsers", login(getUsersHandler))
+	mux.Handle("/getUsers", loginJWT(getUsersHandler))
 	addColaboratorHandler := http.HandlerFunc(addColaborator)
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	//err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }

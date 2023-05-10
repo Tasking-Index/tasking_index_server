@@ -44,6 +44,17 @@ type User struct {
 	Friends             Friends `json:"friends"`
 }
 
+type TokenUser struct {
+	Token               string  `json:"token"`
+	Password            string  `json:"pass"`
+	Keys                Keys    `json:"keys"`
+	DoubleAuthKey       string  `json:"doubleAuthKey"`
+	DoubleAuthActivated bool    `json:"doubleAuthActivated"`
+	DoubleAuthCode      string  `json:"totpCode"`
+	Projects            []int   `json:"projects"`
+	Friends             Friends `json:"friends"`
+}
+
 /*
 Proyecto con sus datos
 */
