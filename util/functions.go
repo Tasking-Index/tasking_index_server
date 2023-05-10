@@ -14,7 +14,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/golang-jwt/jwt"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/xlzd/gotp"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -132,7 +132,7 @@ func UserExists(users Users, user User, needPassword bool) bool {
 		for _, userSaved := range users.Users {
 			if userSaved.Id == user.Id {
 				if needPassword {
-					pswd := claims(user.Id)
+					pswd := claims[user.Id].(string)
 					ok := ComparePasswords(userSaved.Password, []byte(pswd))
 					return ok
 				}
