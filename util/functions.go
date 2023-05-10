@@ -9,13 +9,18 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/xlzd/gotp"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// taskingindexserver en SHA256
+var HMACSECRET = []byte("61394ba0cc7da0efa813264559fbe061df7e58b99e8d2e5eb9a831306ed64fe2")
 
 /*
 Controla si hay un error
@@ -109,15 +114,29 @@ Valida que un usuario existe junto con su password:
 				Falso 		en caso contrario
 */
 func UserExists(users Users, user User, needPassword bool) bool {
-	for _, userSaved := range users.Users {
-		if userSaved.Id == user.Id {
-			if needPassword {
-				pswd := user.Password
-				ok := ComparePasswords(userSaved.Password, []byte(pswd))
-				return ok
-			}
-			return true
+	token, err := jwt.Parse(user.Password, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
+
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return HMACSECRET, nil
+	})
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		for _, userSaved := range users.Users {
+			if userSaved.Id == user.Id {
+				if needPassword {
+					pswd := claims(user.Id)
+					ok := ComparePasswords(userSaved.Password, []byte(pswd))
+					return ok
+				}
+				return true
+			}
+		}
+	} else {
+		fmt.Println(err)
 	}
 	return false
 }
