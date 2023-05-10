@@ -534,6 +534,29 @@ func getKeys(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+func getToken(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user": bodyUser.Id,
+		"pass": bodyUser.Password,
+	})
+
+	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(u.HMACSECRET)
+	fmt.Println(tokenString, err)
+
+	resp := make(map[string]string)
+	resp["token"] = tokenString
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+}
+
 func getProjects(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -560,46 +583,6 @@ func getProjects(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", "data"))
 
 	w.WriteHeader(200)
-}
-
-func loginJWT(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		var bodyUser u.User
-		var message string
-		body, reqErr := io.ReadAll(req.Body)
-		u.Check(reqErr)
-		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
-		req.Body = reqCopy
-		json.Unmarshal([]byte(body), &bodyUser)
-		users := u.StructUsersJson()
-		savedUser := u.ObtainUser(bodyUser, users)
-		if u.UserExists(users, bodyUser, true) {
-			if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUser.DoubleAuthCode) {
-				// Create a new token object, specifying signing method and the claims
-				// you would like it to contain.
-				token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-					bodyUser.Id: bodyUser.Password,
-				})
-				// Sign and get the complete encoded token as a string using the secret
-				tokenString, err := token.SignedString(u.HMACSECRET)
-				fmt.Println(tokenString, err)
-				w.Header().Set("Auth", tokenString)
-
-				next.ServeHTTP(w, req)
-				return
-			} else {
-				message = "2FA code does not match the server one"
-			}
-		} else {
-			message = "User not found or incorrect password"
-		}
-		resp := make(map[string]string)
-		resp["msg"] = message
-		jsonResp, respErr := json.Marshal(resp)
-		u.Check(respErr)
-		w.WriteHeader(409)
-		w.Write(jsonResp)
-	})
 }
 
 func login(next http.Handler) http.Handler {
@@ -669,7 +652,9 @@ func main() {
 	registerHandler := http.HandlerFunc(register)
 	mux.Handle("/register", registerHandler)
 	getProjectsHandler := http.HandlerFunc(getProjects)
-	mux.Handle("/login", loginJWT(getProjectsHandler))
+	mux.Handle("/login", login(getProjectsHandler))
+	getTokenHandler := http.HandlerFunc(getToken)
+	mux.Handle("/getToken", login(getTokenHandler))
 	createProjectHandler := http.HandlerFunc(createProject)
 	mux.Handle("/createProject", loginProject(createProjectHandler))
 	//Update va a petar (recibe multipart, no bodyuserproject en loginProject)
