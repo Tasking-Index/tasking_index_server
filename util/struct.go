@@ -30,6 +30,11 @@ type BodyUserProject struct {
 	Project Project `json:"bodyProject"`
 }
 
+type BodyTokenProject struct {
+	TokenUser TokenUser `json:"bodyToken"`
+	Project   Project   `json:"bodyProject"`
+}
+
 /*
 Usuario con sus datos
 */

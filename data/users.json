@@ -98,8 +98,13 @@
         "available": [
           "user21"
         ],
-        "requested": null,
-        "pending": []
+        "requested": [
+          "david",
+          "josuejx"
+        ],
+        "pending": [
+          "david"
+        ]
       }
     },
     {
@@ -120,7 +125,8 @@
         "available": null,
         "requested": null,
         "pending": [
-          "josuejx4"
+          "josuejx4",
+          "david"
         ]
       }
     },

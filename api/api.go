@@ -600,9 +600,15 @@ func loginJWT(next http.Handler) http.Handler {
 		auxUser := u.GetUserByToken(bodyToken)
 		bodyUser.Id = auxUser.Id
 		bodyUser.Password = auxUser.Password
-		jsonResp, jsonErr := json.Marshal(bodyUser)
-		u.Check(jsonErr)
-		w.Write(jsonResp)
+		modifiedBody, erro := json.Marshal(bodyUser)
+		u.Check(erro)
+
+		// Crea una nueva solicitud con el cuerpo modificado
+		req.Body = ioutil.NopCloser(bytes.NewReader(modifiedBody))
+		req.ContentLength = int64(len(modifiedBody))
+
+		// Establece el tipo de contenido en la cabecera de la solicitud
+		req.Header.Set("Content-Type", "application/json")
 
 		users := u.StructUsersJson()
 		savedUser := u.ObtainUser(bodyUser, users)
@@ -657,13 +663,27 @@ func login(next http.Handler) http.Handler {
 
 func loginProject(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var bodyTokenProject u.BodyTokenProject
 		var bodyUserProject u.BodyUserProject
 		var message string
 		body, reqErr := io.ReadAll(req.Body)
 		u.Check(reqErr)
 		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
 		req.Body = reqCopy
+		json.Unmarshal([]byte(body), &bodyTokenProject)
 		json.Unmarshal([]byte(body), &bodyUserProject)
+		bodyUserProject.User = u.GetUserByToken(bodyTokenProject.TokenUser)
+
+		modifiedBody, erro := json.Marshal(bodyUserProject)
+		u.Check(erro)
+
+		// Crea una nueva solicitud con el cuerpo modificado
+		req.Body = ioutil.NopCloser(bytes.NewReader(modifiedBody))
+		req.ContentLength = int64(len(modifiedBody))
+
+		// Establece el tipo de contenido en la cabecera de la solicitud
+		req.Header.Set("Content-Type", "application/json")
+
 		users := u.StructUsersJson()
 		savedUser := u.ObtainUser(bodyUserProject.User, users)
 		if u.UserExists(users, bodyUserProject.User, true) {
@@ -684,6 +704,39 @@ func loginProject(next http.Handler) http.Handler {
 		w.Write(jsonResp)
 	})
 }
+
+/*
+func loginProject(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var bodyUserProject u.BodyUserProject
+		var message string
+		body, reqErr := io.ReadAll(req.Body)
+		u.Check(reqErr)
+		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
+		req.Body = reqCopy
+		json.Unmarshal([]byte(body), &bodyUserProject)
+		users := u.StructUsersJson()
+		savedUser := u.ObtainUser(bodyUserProject.User, users)
+
+		if u.UserExists(users, bodyUserProject.User, true) {
+			if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUserProject.User.DoubleAuthCode) {
+				next.ServeHTTP(w, req)
+				return
+			} else {
+				message = "2FA code does not match the server one"
+			}
+		} else {
+			message = "User not found or incorrect password"
+		}
+		resp := make(map[string]string)
+		resp["msg"] = message
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	})
+}
+*/
 
 func main() {
 	server := "127.0.0.1:8080"

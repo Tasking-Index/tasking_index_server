@@ -123,6 +123,11 @@ func GetUserByToken(tokenUser TokenUser) User {
 	})
 	Check(err)
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		/*
+			jsonTokenUser, jsonErr := json.Marshal(tokenUser)
+			Check(err)
+			json.Unmarshal(jsonTokenUser, &user)
+		*/
 		user.Id = claims["user"].(string)
 		user.Password = claims["pass"].(string)
 		return user
