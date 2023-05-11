@@ -229,20 +229,32 @@ func updateProject(w http.ResponseWriter, req *http.Request) {
 	body := req.FormValue("bodyJson")
 	var bodyJson u.BodyUserProject
 	json.Unmarshal([]byte(body), &bodyJson)
-	file, handler, err := req.FormFile("project")
-	u.Check(err)
-	filename := handler.Filename
-	tmpfile, err := os.Create("../projects/" + strconv.Itoa(bodyJson.Project.Id) + "/" + filename)
-	defer tmpfile.Close()
-	u.Check(err)
-	_, err = io.Copy(tmpfile, file)
-	u.Check(err)
-	resp := make(map[string]string)
-	resp["msg"] = "Proyecto modificado satisfactoriamente"
-	jsonResp, respErr := json.Marshal(resp)
-	u.Check(respErr)
-	w.WriteHeader(200)
-	w.Write(jsonResp)
+
+	exists, _ := u.ContainsInt(u.GetProjects(bodyJson.User, users), bodyJson.Project.Id)
+
+	if exists {
+		file, handler, err := req.FormFile("project")
+		u.Check(err)
+		filename := handler.Filename
+		tmpfile, err := os.Create("../projects/" + strconv.Itoa(bodyJson.Project.Id) + "/" + filename)
+		defer tmpfile.Close()
+		u.Check(err)
+		_, err = io.Copy(tmpfile, file)
+		u.Check(err)
+		resp := make(map[string]string)
+		resp["msg"] = "Proyecto modificado satisfactoriamente"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(200)
+		w.Write(jsonResp)
+	} else {
+		resp := make(map[string]string)
+		resp["msg"] = "Usuario sin permisos respecto al proyecto"
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	}
 }
 
 /*
@@ -291,7 +303,7 @@ func deleteColaborator(w http.ResponseWriter, req *http.Request) {
 	project = body.Project
 	users := u.StructUsersJson()
 	user2.Id = user.Friends.Available[0]
-	existsFriend, _ := u.Contains(users.Users[u.FindUser(users, user)].Friends.Available, user2.Id)
+	existsFriend, _ := u.ContainsString(users.Users[u.FindUser(users, user)].Friends.Available, user2.Id)
 	existsProject, pos := u.HasProject(users.Users[u.FindUser(users, user2)], project.Id)
 
 	resp := make(map[string]string)
@@ -328,7 +340,7 @@ func addColaborator(w http.ResponseWriter, req *http.Request) {
 	project = body.Project
 	users := u.StructUsersJson()
 	user2.Id = user.Friends.Available[0]
-	existsFriend, _ := u.Contains(users.Users[u.FindUser(users, user)].Friends.Available, user2.Id)
+	existsFriend, _ := u.ContainsString(users.Users[u.FindUser(users, user)].Friends.Available, user2.Id)
 	existsProject, _ := u.HasProject(users.Users[u.FindUser(users, user2)], project.Id)
 
 	resp := make(map[string]string)
@@ -405,8 +417,8 @@ func deleteFriends(w http.ResponseWriter, req *http.Request) {
 	var auxUser u.User
 	for _, id := range bodyUser.Friends.Available {
 		auxUser.Id = id
-		exists, sourcePos := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
-		_, targetPos := u.Contains(users.Users[u.FindUser(users, auxUser)].Friends.Available, bodyUser.Id)
+		exists, sourcePos := u.ContainsString(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
+		_, targetPos := u.ContainsString(users.Users[u.FindUser(users, auxUser)].Friends.Available, bodyUser.Id)
 		if exists {
 			users.Users[u.FindUser(users, bodyUser)].Friends.Available = u.DisAppendString(users.Users[u.FindUser(users, bodyUser)].Friends.Available, sourcePos)
 			users.Users[u.FindUser(users, auxUser)].Friends.Available = u.DisAppendString(users.Users[u.FindUser(users, auxUser)].Friends.Available, targetPos)
@@ -435,11 +447,11 @@ func acceptFriends(w http.ResponseWriter, req *http.Request) {
 	users := u.StructUsersJson()
 	var auxUser u.User
 	for _, id := range bodyUser.Friends.Available {
-		exists, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
+		exists, _ := u.ContainsString(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
 		if !exists {
 			auxUser.Id = id
-			_, pendingPos := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
-			_, requestedPos := u.Contains(users.Users[u.FindUser(users, auxUser)].Friends.Requested, bodyUser.Id)
+			_, pendingPos := u.ContainsString(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
+			_, requestedPos := u.ContainsString(users.Users[u.FindUser(users, auxUser)].Friends.Requested, bodyUser.Id)
 			users.Users[u.FindUser(users, bodyUser)].Friends.Available = append(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
 			users.Users[u.FindUser(users, auxUser)].Friends.Available = append(users.Users[u.FindUser(users, auxUser)].Friends.Available, bodyUser.Id)
 			users.Users[u.FindUser(users, bodyUser)].Friends.Pending = u.DisAppendString(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, pendingPos)
@@ -469,11 +481,11 @@ func rejectFriends(w http.ResponseWriter, req *http.Request) {
 	users := u.StructUsersJson()
 	var auxUser u.User
 	for _, id := range bodyUser.Friends.Pending {
-		exists, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
+		exists, _ := u.ContainsString(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
 		if exists {
 			auxUser.Id = id
-			_, pendingPos := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
-			_, requestedPos := u.Contains(users.Users[u.FindUser(users, auxUser)].Friends.Requested, bodyUser.Id)
+			_, pendingPos := u.ContainsString(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, id)
+			_, requestedPos := u.ContainsString(users.Users[u.FindUser(users, auxUser)].Friends.Requested, bodyUser.Id)
 			users.Users[u.FindUser(users, bodyUser)].Friends.Pending = u.DisAppendString(users.Users[u.FindUser(users, bodyUser)].Friends.Pending, pendingPos)
 			users.Users[u.FindUser(users, auxUser)].Friends.Requested = u.DisAppendString(users.Users[u.FindUser(users, auxUser)].Friends.Requested, requestedPos)
 		}
@@ -499,8 +511,8 @@ func friendRequests(w http.ResponseWriter, req *http.Request) {
 	users := u.StructUsersJson()
 	var auxUser u.User
 	for _, id := range bodyUser.Friends.Requested {
-		existsRequested, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Requested, id)
-		existsAvailable, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
+		existsRequested, _ := u.ContainsString(users.Users[u.FindUser(users, bodyUser)].Friends.Requested, id)
+		existsAvailable, _ := u.ContainsString(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
 		if !existsRequested && !existsAvailable {
 			auxUser.Id = id
 			users.Users[u.FindUser(users, bodyUser)].Friends.Requested = append(users.Users[u.FindUser(users, bodyUser)].Friends.Requested, id)
@@ -560,9 +572,11 @@ func getToken(w http.ResponseWriter, req *http.Request) {
 
 func getProjects(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
+	var bodyProject u.Project
 	body, reqErr := io.ReadAll(req.Body)
 	u.Check(reqErr)
 	json.Unmarshal([]byte(body), &bodyUser)
+	json.Unmarshal([]byte(body), &bodyProject)
 	users := u.StructUsersJson()
 	//Escribimos el zip sobre la respuesta
 	writer := zip.NewWriter(w)
@@ -582,7 +596,6 @@ func getProjects(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s.zip\"", "data"))
-
 	w.WriteHeader(200)
 }
 
@@ -666,6 +679,60 @@ func loginProject(next http.Handler) http.Handler {
 		var bodyTokenProject u.BodyTokenProject
 		var bodyUserProject u.BodyUserProject
 		var message string
+		body, reqErr := io.ReadAll(req.Body)
+		u.Check(reqErr)
+		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
+		req.Body = reqCopy
+		json.Unmarshal([]byte(body), &bodyTokenProject)
+		json.Unmarshal([]byte(body), &bodyUserProject)
+		auxUser := u.GetUserByToken(bodyTokenProject.TokenUser)
+		bodyUserProject.User.Id = auxUser.Id
+		bodyUserProject.User.Password = auxUser.Password
+		modifiedBody, erro := json.Marshal(bodyUserProject)
+		u.Check(erro)
+
+		// Crea una nueva solicitud con el cuerpo modificado
+		req.Body = ioutil.NopCloser(bytes.NewReader(modifiedBody))
+		//req.ContentLength = int64(len(modifiedBody))
+
+		// Establece el tipo de contenido en la cabecera de la solicitud
+		req.Header.Set("Content-Type", "application/json")
+
+		/*
+			var bodyUserProject u.BodyUserProject
+			var message string
+			body, reqErr := io.ReadAll(req.Body)
+			u.Check(reqErr)
+			reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
+			req.Body = reqCopy
+			json.Unmarshal([]byte(body), &bodyUserProject)
+		*/
+		users := u.StructUsersJson()
+		savedUser := u.ObtainUser(bodyUserProject.User, users)
+		if u.UserExists(users, bodyUserProject.User, true) {
+			if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUserProject.User.DoubleAuthCode) {
+				next.ServeHTTP(w, req)
+				return
+			} else {
+				message = "2FA code does not match the server one"
+			}
+		} else {
+			message = "User not found or incorrect password"
+		}
+		resp := make(map[string]string)
+		resp["msg"] = message
+		jsonResp, respErr := json.Marshal(resp)
+		u.Check(respErr)
+		w.WriteHeader(409)
+		w.Write(jsonResp)
+	})
+}
+
+func loginProjectUpdate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var bodyTokenProject u.BodyTokenProject
+		var bodyUserProject u.BodyUserProject
+		var message string
 		//var message string
 		err := req.ParseMultipartForm(32 << 20) // maxMemory 32MB
 		u.Check(err)
@@ -726,9 +793,9 @@ func main() {
 
 	createProjectHandler := http.HandlerFunc(createProject)
 	mux.Handle("/createProject", loginProject(createProjectHandler))
-	//Update va a petar (recibe multipart, no bodyuserproject en loginProject)
+	//Update va a petar (recibe multipart, no bodyuserproject en loginProjectUpdate)
 	updateProjectHandler := http.HandlerFunc(updateProject)
-	mux.Handle("/updateProject", loginProject(updateProjectHandler))
+	mux.Handle("/updateProject", loginProjectUpdate(updateProjectHandler))
 	deleteProjectHandler := http.HandlerFunc(deleteProject)
 	mux.Handle("/deleteProject", loginProject(deleteProjectHandler))
 	enable2FAHandler := http.HandlerFunc(enable2FA)
@@ -755,7 +822,7 @@ func main() {
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
-	//err := http.ListenAndServe(server, mux)
+	//err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }
