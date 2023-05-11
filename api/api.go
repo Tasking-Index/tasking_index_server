@@ -605,7 +605,7 @@ func loginJWT(next http.Handler) http.Handler {
 
 		// Crea una nueva solicitud con el cuerpo modificado
 		req.Body = ioutil.NopCloser(bytes.NewReader(modifiedBody))
-		req.ContentLength = int64(len(modifiedBody))
+		//req.ContentLength = int64(len(modifiedBody))
 
 		// Establece el tipo de contenido en la cabecera de la solicitud
 		req.Header.Set("Content-Type", "application/json")
@@ -788,7 +788,7 @@ func main() {
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	//err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
-	err := http.ListenAndServe(server, mux)
+	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	//err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }
