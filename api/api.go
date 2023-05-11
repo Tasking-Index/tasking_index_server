@@ -14,6 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -214,7 +215,7 @@ func deleteProject(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
-// TODO --> ¿Debe devolver los proyectos (como en login) [Lo puede actualizar Chinin en local]? y comprobar que el usuario tiene ese proyecto
+// TODO: Comprobar que el usuario tiene ese proyecto
 func updateProject(w http.ResponseWriter, req *http.Request) {
 	// Read users.json and map
 	data, fileErr := os.ReadFile("../data/users.json")
@@ -497,7 +498,6 @@ func friendRequests(w http.ResponseWriter, req *http.Request) {
 	json.Unmarshal([]byte(body), &bodyUser)
 	users := u.StructUsersJson()
 	var auxUser u.User
-	fmt.Print(bodyUser)
 	for _, id := range bodyUser.Friends.Requested {
 		existsRequested, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Requested, id)
 		existsAvailable, _ := u.Contains(users.Users[u.FindUser(users, bodyUser)].Friends.Available, id)
@@ -666,23 +666,30 @@ func loginProject(next http.Handler) http.Handler {
 		var bodyTokenProject u.BodyTokenProject
 		var bodyUserProject u.BodyUserProject
 		var message string
-		body, reqErr := io.ReadAll(req.Body)
-		u.Check(reqErr)
-		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
-		req.Body = reqCopy
-		json.Unmarshal([]byte(body), &bodyTokenProject)
-		json.Unmarshal([]byte(body), &bodyUserProject)
-		bodyUserProject.User = u.GetUserByToken(bodyTokenProject.TokenUser)
+		//var message string
+		err := req.ParseMultipartForm(32 << 20) // maxMemory 32MB
+		u.Check(err)
+		bodyFormValue := req.FormValue("bodyJson")
+		json.Unmarshal([]byte(bodyFormValue), &bodyTokenProject)
+		json.Unmarshal([]byte(bodyFormValue), &bodyUserProject)
 
-		modifiedBody, erro := json.Marshal(bodyUserProject)
+		formCopy := make(url.Values)
+		for key, values := range req.Form {
+			for _, value := range values {
+				formCopy.Add(key, value)
+			}
+		}
+		// Asignar la nueva copia a req.Form
+		req.Form = formCopy
+		req.PostForm = formCopy
+		// Volver a analizar el formulario en la solicitud
+		erro := req.ParseForm()
 		u.Check(erro)
 
-		// Crea una nueva solicitud con el cuerpo modificado
-		req.Body = ioutil.NopCloser(bytes.NewReader(modifiedBody))
-		req.ContentLength = int64(len(modifiedBody))
-
-		// Establece el tipo de contenido en la cabecera de la solicitud
-		req.Header.Set("Content-Type", "application/json")
+		auxUser := u.GetUserByToken(bodyTokenProject.TokenUser)
+		bodyUserProject.User = auxUser
+		body, err := json.Marshal(bodyUserProject)
+		req.Form.Set("bodyJson", string(body))
 
 		users := u.StructUsersJson()
 		savedUser := u.ObtainUser(bodyUserProject.User, users)

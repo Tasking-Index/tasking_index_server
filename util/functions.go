@@ -112,22 +112,15 @@ func TOTPactivated(user User) bool { return user.DoubleAuthActivated }
 
 func GetUserByToken(tokenUser TokenUser) User {
 	var user User
-	token, err := jwt.Parse(tokenUser.Token, func(token *jwt.Token) (interface{}, error) {
+	token, _ := jwt.Parse(tokenUser.Token, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
-
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return HMACSECRET, nil
 	})
-	Check(err)
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		/*
-			jsonTokenUser, jsonErr := json.Marshal(tokenUser)
-			Check(err)
-			json.Unmarshal(jsonTokenUser, &user)
-		*/
 		user.Id = claims["user"].(string)
 		user.Password = claims["pass"].(string)
 		return user
