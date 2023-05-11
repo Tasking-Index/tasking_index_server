@@ -11,7 +11,9 @@
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
-      "projects": null,
+      "projects": [
+        
+      ],
       "friends": {
         "available": null,
         "requested": null,
