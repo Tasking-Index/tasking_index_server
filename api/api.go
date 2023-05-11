@@ -712,39 +712,6 @@ func loginProject(next http.Handler) http.Handler {
 	})
 }
 
-/*
-func loginProject(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		var bodyUserProject u.BodyUserProject
-		var message string
-		body, reqErr := io.ReadAll(req.Body)
-		u.Check(reqErr)
-		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
-		req.Body = reqCopy
-		json.Unmarshal([]byte(body), &bodyUserProject)
-		users := u.StructUsersJson()
-		savedUser := u.ObtainUser(bodyUserProject.User, users)
-
-		if u.UserExists(users, bodyUserProject.User, true) {
-			if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUserProject.User.DoubleAuthCode) {
-				next.ServeHTTP(w, req)
-				return
-			} else {
-				message = "2FA code does not match the server one"
-			}
-		} else {
-			message = "User not found or incorrect password"
-		}
-		resp := make(map[string]string)
-		resp["msg"] = message
-		jsonResp, respErr := json.Marshal(resp)
-		u.Check(respErr)
-		w.WriteHeader(409)
-		w.Write(jsonResp)
-	})
-}
-*/
-
 func main() {
 	server := "127.0.0.1:8080"
 	fmt.Println("Servidor a la espera de peticiones en " + server)
