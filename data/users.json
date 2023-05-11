@@ -17,6 +17,24 @@
         "requested": null,
         "pending": null
       }
+    },
+    {
+      "user": "david",
+      "pass": "$2a$04$8nwnIm4gBG/4r1XBjDh6i.0zSf4vqxKUbt9Qoax3POs647Hwg.n3.",
+      "keys": {
+        "kPriv": "clavePrivada",
+        "kPub": "clavePublica",
+        "ivPriv": "iv"
+      },
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "totpCode": "",
+      "projects": [],
+      "friends": {
+        "available": null,
+        "requested": null,
+        "pending": null
+      }
     }
   ]
 }

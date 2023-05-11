@@ -192,7 +192,16 @@ Comprueba si un slice contiene un determinado valor
 	Parametros	(slice, string)
 	Devuelve	Si el string existe o no en el slice y su posición
 */
-func Contains(s []string, str string) (bool, int) {
+func ContainsString(s []string, str string) (bool, int) {
+	for i, v := range s {
+		if v == str {
+			return true, i
+		}
+	}
+	return false, -1
+}
+
+func ContainsInt(s []int, str int) (bool, int) {
 	for i, v := range s {
 		if v == str {
 			return true, i
