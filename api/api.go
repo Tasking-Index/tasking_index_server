@@ -615,6 +615,7 @@ func loginJWT(next http.Handler) http.Handler {
 		bodyUser.Password = auxUser.Password
 		users := u.StructUsersJson()
 		savedUser := u.ObtainUser(bodyUser, users)
+		savedUser.Friends = bodyToken.Friends
 		modifiedBody, erro := json.Marshal(savedUser)
 		u.Check(erro)
 
@@ -822,7 +823,7 @@ func main() {
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	//err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
-	err := http.ListenAndServe(server, mux)
+	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	//err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }
