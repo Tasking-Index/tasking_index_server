@@ -1,17 +1,17 @@
 {
   "users": [
     {
-      "user": "josuejx",
-      "pass": "$2a$04$hmmfrFESEYg.Z.S6rN6VTeyOS2jSNne7uBXNu/XUAu5sF6T9qXQtm",
+      "user": "javi",
+      "pass": "$2a$04$D/BQEgBM4Tpc0erbzwiWauS/7TYUmduxHPPt8.oYxFgLYABn6tH/6",
       "keys": {
-        "kPriv": "cp+omSidimzBH5s9tpVlLKhF1aMkMxk7SFvd2S4fKjlO1KbmW0t035A/iaej99IAa69J",
-        "kPub": "EOS8biMUNRKAWd18fDRZoM9JX2ZRk4iuijMMbqcPxBevQiynm4f6z",
-        "ivPriv": "AAAAAAAAAAAAAAAAAAAAAA=="
+        "kPriv": "clavePrivada",
+        "kPub": "clavePublica",
+        "ivPriv": "iv"
       },
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
-      "projects": [],
+      "projects": null,
       "friends": {
         "available": null,
         "requested": null,
@@ -20,7 +20,7 @@
     },
     {
       "user": "david",
-      "pass": "$2a$04$8nwnIm4gBG/4r1XBjDh6i.0zSf4vqxKUbt9Qoax3POs647Hwg.n3.",
+      "pass": "$2a$04$7Gt65KRi44edflTsInoS/ue63bwbkKQHSjqlBwD8uZgmpMmLV0pfa",
       "keys": {
         "kPriv": "clavePrivada",
         "kPub": "clavePublica",
@@ -29,35 +29,11 @@
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
-      "projects": [
-        8
-      ],
+      "projects": null,
       "friends": {
-        "available": [
-          "javi"
-        ],
-        "requested": [],
-        "pending": null
-      }
-    },
-    {
-      "user": "javi",
-      "pass": "$2a$04$.l853rwW/vam10rdnMNy3u.bH.Pf9NiUWM33VMteLEUJQKD7SKZra",
-      "keys": {
-        "kPriv": "clavePrivada",
-        "kPub": "clavePublica",
-        "ivPriv": "iv"
-      },
-      "doubleAuthKey": "",
-      "doubleAuthActivated": false,
-      "totpCode": "",
-      "projects": [],
-      "friends": {
-        "available": [
-          "david"
-        ],
+        "available": null,
         "requested": null,
-        "pending": []
+        "pending": null
       }
     }
   ]

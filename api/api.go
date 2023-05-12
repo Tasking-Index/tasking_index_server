@@ -609,29 +609,21 @@ func loginJWT(next http.Handler) http.Handler {
 		reqCopy := ioutil.NopCloser(bytes.NewBuffer(body))
 		req.Body = reqCopy
 		json.Unmarshal([]byte(body), &bodyToken)
-		json.Unmarshal([]byte(body), &bodyUser)
+		//json.Unmarshal([]byte(body), &bodyUser)
 		auxUser := u.GetUserByToken(bodyToken)
 		bodyUser.Id = auxUser.Id
 		bodyUser.Password = auxUser.Password
-		modifiedBody, erro := json.Marshal(bodyUser)
+		users := u.StructUsersJson()
+		savedUser := u.ObtainUser(bodyUser, users)
+		modifiedBody, erro := json.Marshal(savedUser)
 		u.Check(erro)
 
 		// Crea una nueva solicitud con el cuerpo modificado
 		req.Body = ioutil.NopCloser(bytes.NewReader(modifiedBody))
 		//req.ContentLength = int64(len(modifiedBody))
 
-		/*
-		 */
-		body, reqErr = io.ReadAll(req.Body)
-		json.Unmarshal([]byte(body), &bodyUser)
-		/*
-		 */
-
 		// Establece el tipo de contenido en la cabecera de la solicitud
 		req.Header.Set("Content-Type", "application/json")
-
-		users := u.StructUsersJson()
-		savedUser := u.ObtainUser(bodyUser, users)
 		if u.UserExists(users, bodyUser, true) {
 			if !u.TOTPactivated(savedUser) || u.CompareTOTPCode(savedUser.DoubleAuthKey, bodyUser.DoubleAuthCode) {
 				next.ServeHTTP(w, req)
