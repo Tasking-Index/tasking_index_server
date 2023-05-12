@@ -688,6 +688,7 @@ func loginProject(next http.Handler) http.Handler {
 		auxUser := u.GetUserByToken(bodyTokenProject.TokenUser)
 		bodyUserProject.User.Id = auxUser.Id
 		bodyUserProject.User.Password = auxUser.Password
+		bodyUserProject.User.Friends = bodyTokenProject.TokenUser.Friends
 		modifiedBody, erro := json.Marshal(bodyUserProject)
 		u.Check(erro)
 
@@ -822,7 +823,7 @@ func main() {
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
-	//err := http.ListenAndServe(server, mux)
+	//err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }
