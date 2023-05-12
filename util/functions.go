@@ -169,6 +169,17 @@ func ObtainUser(user User, users Users) User {
 	return searchedUser
 }
 
+func ObtainPublicKey(user User, users Users) map[string]string {
+	resp := make(map[string]string)
+	for _, userSaved := range users.Users {
+		if userSaved.Id == user.Id {
+			resp["publicKey"] = userSaved.Keys.Kpub
+			return resp
+		}
+	}
+	return resp
+}
+
 /*
 Obtiene la posicion de un Usuario en la lista que previamente sabemos que existe, sino obtendremos error
 

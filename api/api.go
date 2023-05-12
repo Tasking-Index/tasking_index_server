@@ -531,6 +531,20 @@ func friendRequests(w http.ResponseWriter, req *http.Request) {
 	w.Write(jsonResp)
 }
 
+func getPublicKey(w http.ResponseWriter, req *http.Request) {
+	var bodyUser u.User
+	body, reqErr := io.ReadAll(req.Body)
+	u.Check(reqErr)
+	json.Unmarshal([]byte(body), &bodyUser)
+	users := u.StructUsersJson()
+
+	resp := u.ObtainPublicKey(bodyUser, users)
+	jsonResp, respErr := json.Marshal(resp)
+	u.Check(respErr)
+	w.WriteHeader(200)
+	w.Write(jsonResp)
+}
+
 func getKeys(w http.ResponseWriter, req *http.Request) {
 	var bodyUser u.User
 	body, reqErr := io.ReadAll(req.Body)
@@ -789,6 +803,8 @@ func main() {
 	mux.Handle("/getToken", login(getTokenHandler))
 	registerHandler := http.HandlerFunc(register)
 	mux.Handle("/register", registerHandler)
+	getPublicKeyHandler := http.HandlerFunc(getPublicKey)
+	mux.Handle("/getPublicKey", getPublicKeyHandler)
 	getProjectsHandler := http.HandlerFunc(getProjects)
 	mux.Handle("/login", loginJWT(getProjectsHandler))
 
@@ -823,7 +839,7 @@ func main() {
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
-	//err := http.ListenAndServe(server, mux)
+	//err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }

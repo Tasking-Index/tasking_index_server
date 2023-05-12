@@ -1,2 +1,22 @@
 {
+  "users": [
+    {
+      "user": "josuejx",
+      "pass": "$2a$04$l9PmVwvDYysk93dL8l6V0ePybeemUC/60lY/3XInLr5Fa2Fx5K0PC",
+      "keys": {
+        "kPriv": "clavePrivada",
+        "kPub": "clavePublica",
+        "ivPriv": "iv"
+      },
+      "doubleAuthKey": "",
+      "doubleAuthActivated": false,
+      "totpCode": "",
+      "projects": null,
+      "friends": {
+        "available": null,
+        "requested": null,
+        "pending": null
+      }
+    }
+  ]
 }
