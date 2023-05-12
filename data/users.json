@@ -51,9 +51,7 @@
       "doubleAuthKey": "",
       "doubleAuthActivated": false,
       "totpCode": "",
-      "projects": [
-        8
-      ],
+      "projects": [],
       "friends": {
         "available": [
           "david"

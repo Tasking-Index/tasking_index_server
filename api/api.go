@@ -620,6 +620,13 @@ func loginJWT(next http.Handler) http.Handler {
 		req.Body = ioutil.NopCloser(bytes.NewReader(modifiedBody))
 		//req.ContentLength = int64(len(modifiedBody))
 
+		/*
+		 */
+		body, reqErr = io.ReadAll(req.Body)
+		json.Unmarshal([]byte(body), &bodyUser)
+		/*
+		 */
+
 		// Establece el tipo de contenido en la cabecera de la solicitud
 		req.Header.Set("Content-Type", "application/json")
 
