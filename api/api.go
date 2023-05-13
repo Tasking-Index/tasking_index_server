@@ -839,7 +839,7 @@ func main() {
 	mux.Handle("/addColaborator", loginProject(addColaboratorHandler))
 	deleteColaboratorHandler := http.HandlerFunc(deleteColaborator)
 	mux.Handle("/deleteColaborator", loginProject(deleteColaboratorHandler))
-	//err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
-	err := http.ListenAndServe(server, mux)
+	err := http.ListenAndServeTLS(server, "../certs/index.crt", "../certs/index.key", mux)
+	//err := http.ListenAndServe(server, mux)
 	u.Check(err)
 }
