@@ -30,28 +30,45 @@ type BodyUserProject struct {
 	Project Project `json:"bodyProject"`
 }
 
+type BodyTokenProject struct {
+	TokenUser TokenUser `json:"bodyToken"`
+	Project   Project   `json:"bodyProject"`
+}
+
 /*
 Usuario con sus datos
 */
 type User struct {
-	Id                  string `json:"user"`
-	Password            string `json:"pass"`
-	Kpriv               string `json:"kPriv"`
-	Kpub                string `json:"kPub"`
-	DoubleAuthKey       string `json:"doubleAuthKey"`
-	DoubleAuthActivated bool   `json:"doubleAuthActivated"`
-	DoubleAuthCode 		string `json:"totpCode"`
-	Projects            []int  `json:"projects"`
+	Id                  string  `json:"user"`
+	Password            string  `json:"pass"`
+	Keys                Keys    `json:"keys"`
+	DoubleAuthKey       string  `json:"doubleAuthKey"`
+	DoubleAuthActivated bool    `json:"doubleAuthActivated"`
+	DoubleAuthCode      string  `json:"totpCode"`
+	Projects            []int   `json:"projects"`
+	Friends             Friends `json:"friends"`
+}
+
+type TokenUser struct {
+	Token               string  `json:"token"`
+	Password            string  `json:"pass"`
+	Keys                Keys    `json:"keys"`
+	DoubleAuthKey       string  `json:"doubleAuthKey"`
+	DoubleAuthActivated bool    `json:"doubleAuthActivated"`
+	DoubleAuthCode      string  `json:"totpCode"`
+	Projects            []int   `json:"projects"`
+	Friends             Friends `json:"friends"`
 }
 
 /*
 Proyecto con sus datos
 */
 type Project struct {
-	Id          int      `json:"id"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Files       []string `json:"files"`
+	Id          int        `json:"id"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Files       []string   `json:"files"`
+	Additional  Additional `json:"additional"`
 }
 
 /*
@@ -72,4 +89,16 @@ Informacion de una tarea
 type Tarea struct {
 	nombre string
 	estado bool
+}
+
+type Keys struct {
+	Kpriv  string `json:"kPriv"`
+	Kpub   string `json:"kPub"`
+	IVpriv string `json:"ivPriv"`
+}
+
+type Friends struct {
+	Available []string `json:"available"`
+	Requested []string `json:"requested"`
+	Pending   []string `json:"pending"`
 }
